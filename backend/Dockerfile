@@ -13,20 +13,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install pnpm
 RUN npm install -g pnpm
 
-COPY package*.json ./
-COPY tsconfig.json ./
-COPY pnpm-lock.yaml ./
-COPY pnpm-workspace.yaml ./
+COPY backend/package*.json ./backend/
+COPY backend/tsconfig.json ./backend/
+COPY backend/pnpm-lock.yaml ./backend/
+COPY backend/pnpm-workspace.yaml ./backend/
+COPY frontend/package*.json ./frontend/
 
-# Install dependencies (approves builds for better-sqlite3)
+WORKDIR /app/backend
+
+# Install dependencies (approves builds for better-sqlite3) and frontend deps
 RUN pnpm install --frozen-lockfile
+RUN npm --prefix /app/frontend install
 
-COPY src ./src
+COPY backend/src ./src
+COPY frontend /app/frontend
 
-RUN pnpm run build && pnpm prune --prod
+RUN pnpm run build && npm --prefix /app/frontend run build && pnpm prune --prod
 
-# Copy payment.html into dist — served as root page
-COPY src/payment.html ./dist/payment.html
+# Copy payment.html into dist — legacy fallback root page
+COPY backend/src/payment.html ./dist/payment.html
 
 RUN mkdir -p /data && chmod 775 /data
 VOLUME /data

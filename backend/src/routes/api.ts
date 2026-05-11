@@ -10,6 +10,75 @@ function getDataDir(): string {
   return process.env.DATA_DIR || path.join(process.cwd(), 'data');
 }
 
+function getPythonBinary(): string {
+  return process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
+}
+
+async function runPredictor(args: string[]): Promise<unknown> {
+  const scriptPath = resolveMlScriptPath();
+  const pythonBin = getPythonBinary();
+
+  return new Promise((resolve, reject) => {
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    let pythonProcess: ReturnType<typeof spawn>;
+    try {
+      pythonProcess = spawn(pythonBin, [scriptPath, ...args], {
+        cwd: process.cwd(),
+        env: { ...process.env, DATA_DIR: getDataDir() }
+      });
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      pythonProcess.kill();
+      reject(new Error('Prediction timeout'));
+    }, 10000);
+
+    pythonProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    pythonProcess.on('error', (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      reject(error);
+    });
+
+    pythonProcess.on('close', () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+
+      const output = stdout.trim() || stderr.trim();
+      if (!output) {
+        reject(new Error('Predictor returned no output'));
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(output));
+      } catch (error) {
+        reject(
+          new Error(
+            `Failed to parse predictor output: ${output.slice(0, 240)}`
+          )
+        );
+      }
+    });
+  });
+}
+
 // GET /api/health — public, no auth
 router.get('/health', (_req, res) => {
   res.json({
@@ -34,59 +103,35 @@ router.get('/active-players', (_req, res) => {
 // GET /api/predictions/:userId — public
 router.get('/predictions/:userId', async (req, res) => {
   const { userId } = req.params;
-  const scriptPath = resolveMlScriptPath();
-  const PYTHON_BIN = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
-
-  const pythonProcess = spawn(PYTHON_BIN, [scriptPath, userId], {
-    cwd: process.cwd(),
-    env: { ...process.env, DATA_DIR: getDataDir() }
-  });
-
-  let dataString = '';
-  pythonProcess.stdout.on('data', (data) => { dataString += data.toString(); });
-
-  pythonProcess.on('close', (code) => {
-    if (code === 0) {
-      try {
-        const result = JSON.parse(dataString);
-        res.json(result);
-      } catch {
-        res.status(500).json({ error: 'Failed to parse prediction' });
-      }
-    } else {
-      res.status(404).json({ error: 'No prediction data found' });
-    }
-  });
-
-  setTimeout(() => { pythonProcess.kill(); res.status(408).json({ error: 'Prediction timeout' }); }, 10000);
+  try {
+    const result = await runPredictor([userId]);
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Prediction request failed';
+    const status = message === 'Prediction timeout' ? 408 : 503;
+    res.status(status).json({
+      error: message,
+      user_id: userId,
+      predictions: []
+    });
+  }
 });
 
 // GET /api/sessions/:userId — public
 router.get('/sessions/:userId', async (req, res) => {
   const { userId } = req.params;
-  const scriptPath = resolveMlScriptPath();
-  const PYTHON_BIN = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
-
-  const pythonProcess = spawn(PYTHON_BIN, [scriptPath, userId, 'summary'], {
-    cwd: process.cwd(),
-    env: { ...process.env, DATA_DIR: getDataDir() }
-  });
-
-  let dataString = '';
-  pythonProcess.stdout.on('data', (data) => { dataString += data.toString(); });
-
-  pythonProcess.on('close', (code) => {
-    if (code === 0) {
-      try {
-        const result = JSON.parse(dataString);
-        res.json(result);
-      } catch {
-        res.status(500).json({ error: 'Failed to parse session data' });
-      }
-    } else {
-      res.status(404).json({ error: 'No session data found' });
-    }
-  });
+  try {
+    const result = await runPredictor([userId, 'summary']);
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Session request failed';
+    const status = message === 'Prediction timeout' ? 408 : 503;
+    res.status(status).json({
+      error: message,
+      user_id: userId,
+      summary: null
+    });
+  }
 });
 
 function resolveMlScriptPath(): string {

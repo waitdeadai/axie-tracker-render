@@ -1,62 +1,109 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
+import fs from 'fs';
+import path from 'path';
 import { config } from './config';
 import { vstarScheduler } from './core/vstarScheduler';
 import { initializeAuth } from './auth';
 import { apiRouter } from './routes/api';
+import { axiesRouter } from './routes/axies';
 import { paymentsRouter } from './routes/payments';
 import { initPaymentDb, closePaymentDb } from './services/paymentDb';
 import { startPaymentVerifier, stopPaymentVerifier } from './services/paymentVerifier';
 
 const app = express();
 const DEFAULT_DEV_ORIGIN = 'http://localhost:5174';
+const DEV_HOSTS = ['127.0.0.1', 'localhost'];
 
 // Render terminates TLS upstream, so secure session cookies need proxy trust.
 app.set('trust proxy', 1);
 
 function getAllowedOrigins(): string[] {
-  const origins = [...config.cors.origins];
+  const origins = new Set(config.cors.origins);
 
-  if (process.env.NODE_ENV !== 'production' && !origins.includes(DEFAULT_DEV_ORIGIN)) {
-    origins.push(DEFAULT_DEV_ORIGIN);
+  const addOrigin = (value?: string) => {
+    if (!value) {
+      return;
+    }
+
+    try {
+      origins.add(new URL(value).origin);
+    } catch {
+      // Ignore malformed optional URLs; strict config validation lives elsewhere.
+    }
+  };
+
+  addOrigin(process.env.FRONTEND_URL);
+  addOrigin(process.env.BACKEND_URL);
+  addOrigin(process.env.DISCORD_CALLBACK_URL);
+
+  if (process.env.NODE_ENV !== 'production') {
+    origins.add(DEFAULT_DEV_ORIGIN);
+
+    for (const host of DEV_HOSTS) {
+      origins.add(`http://${host}:${config.port}`);
+      origins.add(`https://${host}:${config.port}`);
+    }
   }
 
-  return origins;
+  return [...origins];
 }
 
 app.use(express.json());
 
 const allowedOrigins = getAllowedOrigins();
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+const corsMiddleware = cors((req, callback) => {
+  const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
+  const host = typeof req.headers.host === 'string' ? req.headers.host : '';
+  const forwardedProtoHeader = req.headers['x-forwarded-proto'];
+  const forwardedProto = Array.isArray(forwardedProtoHeader)
+    ? forwardedProtoHeader[0]
+    : forwardedProtoHeader;
+  const protocol = typeof forwardedProto === 'string' && forwardedProto
+    ? forwardedProto.split(',')[0].trim()
+    : 'http';
+  const requestOrigin = host ? `${protocol}://${host}` : null;
+  const isAllowed =
+    !origin ||
+    allowedOrigins.includes('*') ||
+    allowedOrigins.includes(origin) ||
+    origin === requestOrigin;
+
+  callback(isAllowed ? null : new Error('Not allowed by CORS'), {
+    origin: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
     maxAge: 86400,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-API-Key']
-  })
-);
+  });
+});
 
-app.use((_req, res, next) => {
+app.use('/api', corsMiddleware);
+app.use('/api', (_req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   next();
 });
 
 initializeAuth(app);
 app.use('/api', apiRouter);
+app.use('/api/axies', axiesRouter);
 app.use('/api/payments', paymentsRouter);
 
-// Serve payment page at root
-app.get('/', (_req, res) => {
-  res.sendFile(__dirname + '/payment.html');
-});
+const frontendDistPath = path.resolve(process.cwd(), '..', 'frontend', 'dist');
+const legacyRootPath = path.resolve(__dirname, 'payment.html');
+
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+
+  app.get('/', (_req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+} else {
+  app.get('/', (_req, res) => {
+    res.sendFile(legacyRootPath);
+  });
+}
 
 const startServer = () => {
   try {

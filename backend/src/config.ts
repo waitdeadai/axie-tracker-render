@@ -97,7 +97,7 @@ export const config = {
   apiKey: getEnvVar('API_KEY'),
   apiKeyHeader: getEnvVar('ORIGINS_API_KEY_HEADER', 'X-API-Key'),
 
-  blogKeys: getEnvList('ORIGINS_BLOG_KEYS'),
+  blogKeys: getEnvList('ORIGINS_BLOG_KEYS', getEnvList('ORIGINS_API_KEYS')),
   blogEndpoint: getEnvVar(
     'ORIGINS_BLOG_ENDPOINT',
     'https://api-gateway.skymavis.com/origin/v2'
