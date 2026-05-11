@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Axie Tracker + Sniper — Pay</title>
+  <title>Axie Tracker + Sniper — Public Access</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -260,8 +260,8 @@
 <div id="loading-overlay">
   <div class="loading-card">
     <span class="spinner"></span>
-    <div class="loading-title">Checking access options…</div>
-    <div class="loading-sub">Allowlisted Discord access and Ronin payment are loading</div>
+    <div class="loading-title">Loading public access…</div>
+    <div class="loading-sub">Preparing the live tracker and predictions endpoints</div>
   </div>
 </div>
 
@@ -270,7 +270,7 @@
   <!-- Hero -->
   <div class="hero">
     <h1>Axie Tracker + Sniper</h1>
-    <p>AI-powered play predictions</p>
+    <p>Public live tracker and AI-powered play predictions</p>
   </div>
 
   <!-- Step 1: Choose access path -->
@@ -355,6 +355,7 @@
   let pollTimer = null;
   let accessMode = 'payment';
   let retryTarget = 'access';
+  const LEADERBOARD_URL = window.location.origin + '/api/leaderboard';
 
   /* ── DOM refs ──────────────────────────────────────────────── */
   const loadingOverlay = document.getElementById('loading-overlay');
@@ -533,8 +534,27 @@
     apiKeyDisplay.textContent = value;
     keyExpiry.textContent = expiresAt ? 'Expires: ' + fmtExpiry(expiresAt) : '';
     accessHelp.textContent = help || '';
-    btnStart.classList.toggle('hidden', mode !== 'discord');
+    if (mode === 'discord') {
+      btnStart.textContent = 'Log Out';
+      btnStart.classList.remove('hidden');
+    } else if (mode === 'public') {
+      btnStart.textContent = 'Open Leaderboard';
+      btnStart.classList.remove('hidden');
+    } else {
+      btnStart.classList.add('hidden');
+    }
     showOnly(stepApikey);
+  }
+
+  function showPublicAccess() {
+    showAccessValue({
+      title: 'Public Access Enabled',
+      label: 'Leaderboard URL',
+      value: LEADERBOARD_URL,
+      help: 'No Discord login, wallet payment, or API key is required. Public endpoints: /api/leaderboard, /api/active-players, /api/predictions/:userId, /api/sessions/:userId, and /api/health.',
+      expiresAt: null,
+      mode: 'public'
+    });
   }
 
   /* ── Wallet connection ──────────────────────────────────────── */
@@ -752,6 +772,11 @@
   btnStart.addEventListener('click', () => {
     if (accessMode === 'discord') {
       logoutDiscord();
+      return;
+    }
+
+    if (accessMode === 'public') {
+      window.location.href = LEADERBOARD_URL;
     }
   });
 
@@ -762,25 +787,8 @@
 
   /* ── Initial access routing ─────────────────────────────────── */
   async function init() {
-    const redirectState = consumeRedirectState();
-
-    if (redirectState.error) {
-      const authError = describeAuthError(redirectState.error);
-      showError(authError.title, authError.message, 'access');
-      return;
-    }
-
-    try {
-      const authStatus = await getDiscordAuthStatus();
-      if (authStatus && authStatus.authenticated && authStatus.authorized) {
-        showDiscordAccess(authStatus);
-        return;
-      }
-    } catch (_) {
-      clearStoredToken();
-    }
-
-    showOnly(stepConnect);
+    consumeRedirectState();
+    showPublicAccess();
   }
 
   init().finally(() => loadingOverlay.remove());
