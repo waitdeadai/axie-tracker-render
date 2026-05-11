@@ -1,0 +1,54 @@
+PORT=4000
+NODE_ENV=production
+DATA_DIR=/data
+PYTHON_BIN=python3
+
+# API Keys para leaderboard
+ORIGINS_API_KEYS=key1,key2
+
+# API Keys para battle-logs e imagenes
+ORIGINS_BLOG_KEYS=key3,key4,key5
+
+# Endpoint para battle-logs
+ORIGINS_BLOG_ENDPOINT=https://api-gateway.skymavis.com/origin/v2
+
+# Secret key para firmar URLs de axie.top
+AXIE_TOP_SECRET_KEY=replace_with_axie_top_secret
+
+ORIGINS_API_KEY_HEADER=X-API-Key
+
+LEADERBOARD_URL=https://api-gateway.skymavis.com/origins/v2/season-leaderboards
+BATTLE_LOG_URL=https://api-gateway.skymavis.com/origin/v2/community/users/:client_id/battle-logs
+AXIE_TOP_URL=https://axie.top/
+
+# Ventanas y caching
+ACTIVE_WINDOW_MS=300000
+REFRESH_LEADERBOARD_MS=20000
+BATTLELOG_TTL_MS=45000
+
+# Presupuesto de rate limit
+KEYS=5
+KEY_RPS=5
+KEY_RPM=100
+BUDGET_RPM=450
+BUDGET_RPS=7.5
+
+# Capa global Bottleneck
+GLOBAL_RESERVOIR=450
+GLOBAL_REFRESH_MS=60000
+REQUEST_TIMEOUT_MS=10000
+
+# Discord OAuth2 Configuration
+DISCORD_CLIENT_ID=replace_with_discord_client_id
+DISCORD_CLIENT_SECRET=replace_with_discord_client_secret
+DISCORD_CALLBACK_URL=https://axie.your-domain.com/api/auth/discord/callback
+SESSION_SECRET=replace_with_long_random_secret
+JWT_SECRET=replace_with_second_long_random_secret
+FRONTEND_URL=https://axie.your-domain.com
+
+# Discord Whitelist
+ALLOWED_DISCORD_IDS=969845195988410388,429035818087219200,868483231228514385
+
+# CORS Configuration
+CORS_ORIGIN=https://axie.your-domain.com
+ENABLE_SELF_PING=false

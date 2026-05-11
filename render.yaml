@@ -1,0 +1,93 @@
+# Render.com Deployment — Axie Tracker + Sniper + Payments
+# Free tier: container sleeps after 15min inactivity
+# Use UptimeRobot to ping /api/health every 5 min to prevent sleep
+# Upgrade to paid plan ($5/mo) for always-on
+
+services:
+  - type: web
+    name: axie-tracker
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATA_DIR
+        value: /tmp/axie-data
+      # Sky Mavis API keys — set in Render dashboard
+      - key: ORIGINS_API_KEYS
+        sync: false
+      - key: ORIGINS_API_KEY_HEADER
+        value: X-API-Key
+      - key: AXIE_TOP_URL
+        value: https://axie.top/
+      # Payment system
+      - key: PAYMENT_WALLET_ADDRESS
+        value: ronin:51a8318FBFf6DDFee50Ee0fb0f33AF02F34fF649
+      - key: RONIN_RPC_URL
+        value: https://ronin.drpc.org
+      - key: USDC_CONTRACT
+        value: 0x9433e1776c043289c0a5aba2eb9ff8dd1e8471c3
+      - key: RON_DECIMALS
+        value: 18
+      - key: USDC_DECIMALS
+        value: 6
+      - key: PLANS_USDC_2WEEKS
+        value: 2
+      - key: PLANS_RON_2WEEKS
+        value: 20
+      - key: PLANS_USDC_1MONTH
+        value: 5
+      - key: PLANS_RON_1MONTH
+        value: 50
+      - key: PLANS_USDC_3MONTH
+        value: 12
+      - key: PLANS_RON_3MONTH
+        value: 120
+      - key: PLANS_USDC_1YEAR
+        value: 40
+      - key: PLANS_RON_1YEAR
+        value: 400
+      # API Key for backend auth — generate at https://小花.one-password.com or any random generator
+      - key: API_KEY
+        generateValue: true
+      # Tracker settings
+      - key: LEADERBOARD_URL
+        value: https://api-gateway.skymavis.com/origins/v2/season-leaderboards
+      - key: BATTLE_LOG_URL
+        value: https://api-gateway.skymavis.com/origin/v2/community/users
+      - key: ACTIVE_WINDOW_MS
+        value: 300000
+      - key: REFRESH_LEADERBOARD_MS
+        value: 3000
+      - key: BATTLELOG_TTL_MS
+        value: 45000
+      - key: IMAGES_TTL_MS
+        value: 300000
+      - key: KEYS
+        value: 5
+      - key: KEY_RPS
+        value: 5
+      - key: KEY_RPM
+        value: 100
+      - key: BUDGET_RPM
+        value: 450
+      - key: BUDGET_RPS
+        value: 7.5
+      - key: GLOBAL_RESERVOIR
+        value: 450
+      - key: GLOBAL_REFRESH_MS
+        value: 60000
+      - key: REQUEST_TIMEOUT_MS
+        value: 5000
+      - key: PYTHON_BIN
+        value: python3
+      - key: CORS_ORIGIN
+        value: '*'
+      - key: ENABLE_SELF_PING
+        value: false

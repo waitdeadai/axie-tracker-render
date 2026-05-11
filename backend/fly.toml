@@ -1,0 +1,58 @@
+# fly.toml - Configuración para Fly.io
+app = "axie-mvp-backend" # Reemplaza con el nombre que prefieras para tu aplicación
+
+kill_signal = "SIGINT"
+kill_timeout = 5
+primary_region = "mia" # Región más cercana a tus usuarios (Miami para LATAM)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "4000"
+  NODE_ENV = "production"
+  DATA_DIR = "/data"
+
+[mounts]
+  source = "axie_mvp_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = false # Mantener siempre activo
+  auto_start_machines = true
+  min_machines_running = 1 # Siempre tener al menos una instancia
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    path = "/api/health"
+    protocol = "http"
+    timeout = "10s"
+
+[services]
+  [services.app]
+    internal_port = 4000
+    protocol = "tcp"
+
+    [[services.app.ports]]
+      port = 80
+      handlers = ["http"]
+      force_https = true
+
+    [[services.app.ports]]
+      port = 443
+      handlers = ["tls", "http"]
+
+    [services.app.resources]
+      memory = 2048 # 2GB de RAM
+      cpu_kind = "shared"
+      cpu_cores = 1
