@@ -8,7 +8,7 @@ import { generateToken, authenticateJWT, AuthenticatedRequest } from './jwt';
 
 const router = Router();
 const DISCORD_AUTHORIZE_URL = 'https://discord.com/oauth2/authorize';
-const DISCORD_TOKEN_URL = 'https://discord.com/api/v10/oauth2/token';
+const DISCORD_TOKEN_URL = 'https://discord.com/api/oauth2/token';
 const DISCORD_ME_URL = 'https://discord.com/api/v10/users/@me';
 
 interface DiscordTokenResponse {
@@ -75,7 +75,8 @@ async function exchangeDiscordCode(code: string): Promise<string | null> {
   const response = await fetch(DISCORD_TOKEN_URL, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json'
     },
     body: body.toString()
   });
