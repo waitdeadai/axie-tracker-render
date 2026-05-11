@@ -23,7 +23,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY src ./src
 
-RUN pnpm run build && pnpm prune --omit=dev
+RUN pnpm run build && pnpm prune --prod
 
 # Copy payment.html into dist — served as root page
 COPY src/payment.html ./dist/payment.html
