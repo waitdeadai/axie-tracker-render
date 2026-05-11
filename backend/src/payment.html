@@ -3,797 +3,1295 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Axie Tracker + Sniper — Public Access</title>
+  <title>Axie Tracker + Sniper</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      color-scheme: dark;
+      --bg: #070b12;
+      --bg-elevated: rgba(14, 20, 32, 0.92);
+      --bg-soft: rgba(19, 27, 41, 0.85);
+      --border: rgba(127, 156, 211, 0.18);
+      --border-strong: rgba(114, 182, 255, 0.42);
+      --text: #eef3ff;
+      --muted: #97a6c4;
+      --green: #36d082;
+      --green-soft: rgba(54, 208, 130, 0.15);
+      --red: #ff7d7d;
+      --red-soft: rgba(255, 125, 125, 0.15);
+      --blue: #7bc2ff;
+      --gold: #ffd166;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Inter, "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(72, 125, 255, 0.24), transparent 34%),
+        radial-gradient(circle at top right, rgba(54, 208, 130, 0.14), transparent 28%),
+        linear-gradient(180deg, #09101b 0%, #070b12 42%, #05080e 100%);
+      color: var(--text);
+      font-family: var(--sans);
+    }
 
     body {
-      background: #0d1117;
-      color: #c9d1d9;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      padding: 28px 18px 48px;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 28px;
+      background:
+        linear-gradient(160deg, rgba(16, 27, 44, 0.96), rgba(9, 14, 23, 0.92)),
+        rgba(14, 20, 32, 0.92);
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -60% auto;
+      width: 360px;
+      height: 360px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(123, 194, 255, 0.17), transparent 70%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
       align-items: center;
-      padding: 60px 20px;
-    }
-
-    .container { width: 100%; max-width: 600px; }
-
-    /* Hero */
-    .hero { text-align: center; margin-bottom: 48px; }
-    .hero h1 {
-      font-size: 2.4rem;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(123, 194, 255, 0.1);
+      color: var(--blue);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
       font-weight: 700;
-      color: #f0f6fc;
-      margin-bottom: 10px;
-    }
-    .hero p {
-      font-size: 1.1rem;
-      color: #8b949e;
     }
 
-    /* Buttons */
-    .btn {
+    .hero h1 {
+      margin: 0;
+      max-width: 720px;
+      font-size: clamp(2.5rem, 6vw, 4.6rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .hero-copy {
+      margin: 16px 0 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1.08rem;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .button,
+    .button-link {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 14px 28px;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: background 0.2s, opacity 0.2s;
+      min-height: 46px;
+      padding: 0 16px;
+      border: 1px solid transparent;
+      border-radius: 999px;
       text-decoration: none;
-    }
-    .btn-primary {
-      background: #2ea043;
-      color: #fff;
-    }
-    .btn-primary:hover { background: #3cbf54; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-secondary {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
-    }
-    .btn-secondary:hover { background: #30363d; }
-    .btn-full { width: 100%; }
-
-    /* Cards */
-    .plan-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 32px;
-    }
-    @media (max-width: 500px) {
-      .plan-grid { grid-template-columns: 1fr; }
-    }
-    .plan-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 20px 16px;
-      text-align: center;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      position: relative;
-    }
-    .plan-card:hover { border-color: #8b949e; }
-    .plan-card.selected {
-      border-color: #2ea043;
-      background: #1c2d1e;
-    }
-    .plan-card input[type="radio"] {
-      position: absolute;
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .plan-name {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #f0f6fc;
-      margin-bottom: 8px;
-    }
-    .plan-price {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #2ea043;
-      margin-bottom: 4px;
-    }
-    .plan-sub {
-      font-size: 0.8rem;
-      color: #8b949e;
-    }
-    .plan-days {
-      margin-top: 6px;
-      font-size: 0.75rem;
-      color: #6e7681;
+      transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
     }
 
-    /* Sections */
-    .section { margin-bottom: 36px; }
-    .section-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #8b949e;
-      margin-bottom: 14px;
+    .button:hover,
+    .button-link:hover {
+      transform: translateY(-1px);
     }
 
-    /* Address badge */
-    .address-badge {
-      display: inline-block;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 8px 14px;
-      font-size: 0.9rem;
-      color: #f0f6fc;
-      font-family: 'Courier New', Courier, monospace;
-      word-break: break-all;
+    .button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+      transform: none;
     }
 
-    /* Spinner */
-    .spinner {
-      width: 24px;
-      height: 24px;
-      border: 3px solid #30363d;
-      border-top-color: #2ea043;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      display: inline-block;
+    .button-primary {
+      background: linear-gradient(135deg, #2fcc79, #1892ff);
+      color: #041019;
+      font-weight: 800;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Status */
-    .status-box {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 24px;
-      text-align: center;
+    .button-secondary,
+    .button-link {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: var(--border);
+      color: var(--text);
     }
-    .status-box .spinner { margin: 0 auto 14px; display: block; }
-    .status-title { font-size: 1.1rem; font-weight: 600; color: #f0f6fc; margin-bottom: 6px; }
-    .status-sub { font-size: 0.9rem; color: #8b949e; }
 
-    /* API Key box */
-    .api-key-box {
-      background: #161b22;
-      border: 1px solid #2ea043;
-      border-radius: 10px;
-      padding: 20px;
-    }
-    .api-key-label {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #8b949e;
-      margin-bottom: 10px;
-    }
-    .api-key-row {
-      display: flex;
-      gap: 8px;
-      align-items: stretch;
-    }
-    .api-key-value {
-      flex: 1;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 10px 14px;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.85rem;
-      color: #f0f6fc;
-      word-break: break-all;
-      user-select: all;
-    }
-    .copy-btn {
-      padding: 10px 16px;
-      background: #21262d;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      color: #c9d1d9;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 600;
+    .button-link {
       white-space: nowrap;
-      transition: background 0.2s;
     }
-    .copy-btn:hover { background: #30363d; }
-    .copy-btn.copied { background: #2ea043; color: #fff; border-color: #2ea043; }
 
-    /* Error box */
-    .error-box {
-      background: #2a1d1d;
-      border: 1px solid #f85149;
-      border-radius: 10px;
-      padding: 20px;
-      text-align: center;
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
     }
-    .error-title { color: #f85149; font-weight: 600; margin-bottom: 6px; }
-    .error-sub { color: #8b949e; font-size: 0.9rem; }
 
-    /* Hidden */
-    .hidden { display: none !important; }
+    .stat-card {
+      padding: 18px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(10px);
+    }
 
-    /* Divider */
-    .divider { border: none; border-top: 1px solid #21262d; margin: 28px 0; }
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
 
-    /* Loading overlay */
-    #loading-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(13, 17, 23, 0.85);
+    .stat-value {
+      margin-top: 10px;
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.05em;
+    }
+
+    .stat-sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--bg-elevated);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
       display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 22px 22px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .panel-title-group h2,
+    .panel-title-group h3 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: -0.03em;
+    }
+
+    .panel-kicker {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 6px;
+    }
+
+    .panel-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .panel-body {
+      padding: 18px 22px 22px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0 16px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--border-strong);
+      box-shadow: 0 0 0 4px rgba(114, 182, 255, 0.12);
+    }
+
+    .leaderboard-list,
+    .activity-list,
+    .detail-list,
+    .summary-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .leaderboard-row,
+    .activity-card,
+    .prediction-card,
+    .session-card {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      background: var(--bg-soft);
+    }
+
+    .leaderboard-row {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .leaderboard-row:hover,
+    .activity-card:hover {
+      transform: translateY(-1px);
+      border-color: var(--border-strong);
+    }
+
+    .leaderboard-row.selected {
+      border-color: rgba(54, 208, 130, 0.45);
+      background: linear-gradient(135deg, rgba(54, 208, 130, 0.12), rgba(114, 182, 255, 0.1));
+    }
+
+    .rank-badge {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      z-index: 999;
+      min-height: 46px;
+      padding: 0 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: -0.04em;
     }
-    .loading-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 32px 40px;
+
+    .player-name {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .player-meta,
+    .detail-meta,
+    .footnote,
+    .mini-text {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .player-metrics {
+      text-align: right;
+    }
+
+    .metric-primary {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .delta-up,
+    .badge-up {
+      color: var(--green);
+    }
+
+    .delta-down,
+    .badge-down {
+      color: var(--red);
+    }
+
+    .delta-flat {
+      color: var(--muted);
+    }
+
+    .activity-card {
+      padding: 14px;
+      cursor: pointer;
+      transition: transform 0.16s ease, border-color 0.16s ease;
+    }
+
+    .activity-header,
+    .detail-header {
+      display: flex;
+      gap: 10px;
+      align-items: start;
+      justify-content: space-between;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-size: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .chip.good {
+      background: var(--green-soft);
+      color: var(--green);
+      border-color: rgba(54, 208, 130, 0.25);
+    }
+
+    .chip.bad {
+      background: var(--red-soft);
+      color: var(--red);
+      border-color: rgba(255, 125, 125, 0.25);
+    }
+
+    .status-banner,
+    .empty-state,
+    .loading-state {
+      padding: 16px;
+      border-radius: var(--radius-md);
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .status-banner.error,
+    .empty-state.error {
+      border-color: rgba(255, 125, 125, 0.3);
+      color: #ffd1d1;
+      background: rgba(255, 125, 125, 0.08);
+    }
+
+    .detail-shell {
+      display: grid;
+      gap: 14px;
+    }
+
+    .detail-card {
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(145deg, rgba(17, 26, 42, 0.9), rgba(11, 18, 29, 0.9));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .detail-card h4 {
+      margin: 0 0 12px;
+      font-size: 0.95rem;
+      letter-spacing: -0.02em;
+    }
+
+    .summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .summary-item {
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 0.76rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .summary-value {
+      margin-top: 8px;
+      font-size: 1.08rem;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .detail-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .prediction-card,
+    .session-card {
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .prediction-card strong,
+    .session-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.94rem;
+    }
+
+    .session-pre {
+      margin: 0;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      background: rgba(3, 8, 16, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #dfe7fb;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.86rem;
       text-align: center;
     }
-    .loading-card .spinner {
-      width: 36px;
-      height: 36px;
-      border-width: 4px;
-      margin: 0 auto 16px;
-      display: block;
+
+    .hidden {
+      display: none !important;
     }
-    .loading-title { font-size: 1.1rem; font-weight: 600; color: #f0f6fc; margin-bottom: 6px; }
-    .loading-sub { font-size: 0.9rem; color: #8b949e; }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 16px 12px 36px;
+      }
+
+      .hero,
+      .panel-head,
+      .panel-body {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .leaderboard-row {
+        grid-template-columns: 58px minmax(0, 1fr);
+      }
+
+      .player-metrics {
+        grid-column: 2;
+        text-align: left;
+      }
+
+      .stats-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-
-<!-- Loading overlay shown while tanto-connect + ethers load -->
-<div id="loading-overlay">
-  <div class="loading-card">
-    <span class="spinner"></span>
-    <div class="loading-title">Loading public access…</div>
-    <div class="loading-sub">Preparing the live tracker and predictions endpoints</div>
-  </div>
-</div>
-
-<div class="container">
-
-  <!-- Hero -->
-  <div class="hero">
-    <h1>Axie Tracker + Sniper</h1>
-    <p>Public live tracker and AI-powered play predictions</p>
-  </div>
-
-  <!-- Step 1: Choose access path -->
-  <div id="step-connect" class="section hidden">
-    <div class="section-title">Step 1 — Access</div>
-    <div class="status-box">
-      <div class="status-title">Already whitelisted on Discord?</div>
-      <div class="status-sub">Continue with Discord to skip Ronin payment. If not, unlock access with a wallet payment.</div>
-      <button id="btn-discord" class="btn btn-secondary btn-full" style="margin-top: 16px;">Continue with Discord</button>
-      <hr class="divider" />
-      <button id="btn-connect" class="btn btn-primary btn-full">Use Ronin Wallet</button>
-    </div>
-  </div>
-
-  <!-- Step 2: Plan Selection (hidden until connected) -->
-  <div id="step-plans" class="section hidden">
-    <div class="section-title">Step 2 — Wallet Plan</div>
-    <div class="address-badge" id="display-address"></div>
-    <div style="margin-top: 14px;">
-      <div class="section-title" style="margin-bottom: 10px;">Choose your plan</div>
-      <div class="plan-grid" id="plan-grid">
-        <!-- Filled dynamically from /api/payments/rates -->
+  <div class="page">
+    <section class="hero">
+      <div class="eyebrow">Public Tracker Live</div>
+      <h1>Axie Tracker + Sniper</h1>
+      <p class="hero-copy">
+        Clients do not need Discord login anymore. This page now shows the live tracker directly:
+        leaderboard state, recent activity, and public prediction lookups in one place.
+      </p>
+      <div class="hero-actions">
+        <button id="refresh-btn" class="button button-primary" type="button">Refresh live data</button>
+        <a class="button-link" href="/api/leaderboard" target="_blank" rel="noreferrer">Raw leaderboard API</a>
+        <a class="button-link" href="/api/health" target="_blank" rel="noreferrer">Health endpoint</a>
       </div>
-    </div>
-    <button id="btn-pay" class="btn btn-primary btn-full" disabled>Pay with Ronin Wallet</button>
-  </div>
-
-  <!-- Step 3: Payment Status / Polling -->
-  <div id="step-polling" class="section hidden">
-    <div class="section-title">Step 3 — Payment</div>
-    <div class="status-box">
-      <span class="spinner"></span>
-      <div class="status-title" id="polling-title">Waiting for confirmation…</div>
-      <div class="status-sub" id="polling-sub">Transaction submitted. Waiting for blockchain confirmation.</div>
-    </div>
-  </div>
-
-  <!-- Step 4: API Key (shown on confirmed) -->
-  <div id="step-apikey" class="section hidden">
-    <div class="section-title" id="access-title">Your Access</div>
-    <div class="api-key-box">
-      <div class="api-key-label" id="access-label">API Key — keep this secret</div>
-      <div class="api-key-row">
-        <div class="api-key-value" id="api-key-display"></div>
-        <button class="copy-btn" id="btn-copy">Copy</button>
+      <div class="stats-grid">
+        <article class="stat-card">
+          <div class="stat-label">Tracked Players</div>
+          <div class="stat-value" id="tracked-count">--</div>
+          <div class="stat-sub" id="tracked-sub">Loading leaderboard state</div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-label">Recent Activity</div>
+          <div class="stat-value" id="active-count">--</div>
+          <div class="stat-sub" id="active-sub">Reading active player snapshot</div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-label">Leaderboard Freshness</div>
+          <div class="stat-value" id="freshness-value">--</div>
+          <div class="stat-sub" id="freshness-sub">Waiting for timestamps</div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-label">Last Refresh</div>
+          <div class="stat-value" id="refresh-value">--</div>
+          <div class="stat-sub" id="refresh-sub">Root page is booting</div>
+        </article>
       </div>
-      <div style="margin-top: 10px; font-size: 0.8rem; color: #8b949e;" id="key-expiry"></div>
-      <div style="margin-top: 10px; font-size: 0.8rem; color: #8b949e;" id="access-help"></div>
-    </div>
-    <button id="btn-start" class="btn btn-secondary btn-full hidden" style="margin-top: 16px;">Log Out</button>
+    </section>
+
+    <div id="global-status" class="status-banner hidden"></div>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title-group">
+            <div class="panel-kicker">Leaderboard</div>
+            <h2>Live Ranking View</h2>
+          </div>
+          <div class="panel-meta" id="leaderboard-meta">Waiting for the first load</div>
+        </div>
+        <div class="panel-body">
+          <div class="toolbar">
+            <input
+              id="search-input"
+              class="search-input"
+              type="search"
+              placeholder="Filter by player name or user ID"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="clear-search-btn" class="button button-secondary" type="button">Clear</button>
+            <button id="top-ten-btn" class="button button-secondary" type="button">Top 10</button>
+          </div>
+          <div id="leaderboard-empty" class="empty-state hidden"></div>
+          <div id="leaderboard-list" class="leaderboard-list"></div>
+        </div>
+      </section>
+
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title-group">
+              <div class="panel-kicker">Active Snapshot</div>
+              <h3>Recent Player Movement</h3>
+            </div>
+            <div class="panel-meta" id="active-meta">Waiting for active snapshot</div>
+          </div>
+          <div class="panel-body">
+            <div id="active-empty" class="empty-state hidden"></div>
+            <div id="active-list" class="activity-list"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title-group">
+              <div class="panel-kicker">Player Drilldown</div>
+              <h3>Predictions + Sessions</h3>
+            </div>
+            <div class="panel-meta" id="detail-meta">Tap a player to inspect the public sniper output</div>
+          </div>
+          <div class="panel-body">
+            <div id="detail-empty" class="empty-state">
+              Select any leaderboard row or recent activity card to inspect that player without logging in.
+            </div>
+            <div id="detail-shell" class="detail-shell hidden">
+              <article class="detail-card">
+                <div class="detail-header">
+                  <div>
+                    <h3 id="detail-name" style="margin:0;font-size:1.3rem;letter-spacing:-0.04em;"></h3>
+                    <div id="detail-user-id" class="detail-meta"></div>
+                  </div>
+                  <div class="metric-primary" id="detail-vstar">--</div>
+                </div>
+                <div class="chip-row" id="detail-chip-row"></div>
+                <div class="summary-grid" id="detail-summary" style="margin-top:14px;"></div>
+                <div class="detail-actions">
+                  <button id="copy-user-btn" class="button button-secondary" type="button">Copy user ID</button>
+                  <a id="open-predictions-link" class="button-link" href="#" target="_blank" rel="noreferrer">Open predictions JSON</a>
+                  <a id="open-sessions-link" class="button-link" href="#" target="_blank" rel="noreferrer">Open sessions JSON</a>
+                </div>
+              </article>
+
+              <article class="detail-card">
+                <h4>Prediction Outlook</h4>
+                <div id="predictions-content" class="detail-list"></div>
+              </article>
+
+              <article class="detail-card">
+                <h4>Session Summary</h4>
+                <div id="sessions-content" class="detail-list"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <p class="footer-note">
+      The page auto-refreshes every 30 seconds. Public APIs still remain available for external consumers.
+    </p>
   </div>
 
-  <!-- Step 5: Error / Retry -->
-  <div id="step-error" class="section hidden">
-    <div class="error-box">
-      <div class="error-title" id="error-title">Payment Expired</div>
-      <div class="error-sub" id="error-sub">The payment session timed out. Please try again.</div>
-      <button id="btn-retry" class="btn btn-primary" style="margin-top: 16px;">Try Again</button>
-    </div>
-  </div>
+  <script>
+    (function () {
+      'use strict';
 
-</div>
+      const MAX_LEADERBOARD_ROWS = 60;
+      const AUTO_REFRESH_MS = 30000;
 
-<!-- tanto-connect UMD (sets window.TantoConnect) -->
-<script src="https://cdn.jsdelivr.net/npm/@sky-mavis/tanto-connect@latest/dist/tanto-connect.umd.js"></script>
-<!-- ethers.js v6 -->
-<script src="https://cdn.ethers.org/v6/ethers.umd.min.js"></script>
+      const state = {
+        leaderboard: [],
+        activePlayers: [],
+        activeUpdatedAt: null,
+        selectedPlayerId: null,
+        filterText: '',
+        lastRefreshAt: null,
+        loading: false,
+        detailCache: new Map(),
+      };
 
-<script>
-(function () {
-  'use strict';
+      const refreshBtn = document.getElementById('refresh-btn');
+      const searchInput = document.getElementById('search-input');
+      const clearSearchBtn = document.getElementById('clear-search-btn');
+      const topTenBtn = document.getElementById('top-ten-btn');
+      const globalStatus = document.getElementById('global-status');
 
-  /* ── Configuration ─────────────────────────────────────────── */
-  const BACKEND_URL = '';  // empty string = relative URLs (e.g. '' or 'http://localhost:4000')
+      const trackedCount = document.getElementById('tracked-count');
+      const trackedSub = document.getElementById('tracked-sub');
+      const activeCount = document.getElementById('active-count');
+      const activeSub = document.getElementById('active-sub');
+      const freshnessValue = document.getElementById('freshness-value');
+      const freshnessSub = document.getElementById('freshness-sub');
+      const refreshValue = document.getElementById('refresh-value');
+      const refreshSub = document.getElementById('refresh-sub');
 
-  /* ── State ─────────────────────────────────────────────────── */
-  let connector = null;
-  let userAddress = null;
-  let selectedPlan = null;
-  let rates = null;          // from /api/payments/rates
-  let currentSessionId = null;
-  let pollTimer = null;
-  let accessMode = 'payment';
-  let retryTarget = 'access';
-  const LEADERBOARD_URL = window.location.origin + '/api/leaderboard';
+      const leaderboardMeta = document.getElementById('leaderboard-meta');
+      const leaderboardList = document.getElementById('leaderboard-list');
+      const leaderboardEmpty = document.getElementById('leaderboard-empty');
 
-  /* ── DOM refs ──────────────────────────────────────────────── */
-  const loadingOverlay = document.getElementById('loading-overlay');
-  const btnDiscord     = document.getElementById('btn-discord');
-  const btnConnect     = document.getElementById('btn-connect');
-  const stepConnect    = document.getElementById('step-connect');
-  const stepPlans      = document.getElementById('step-plans');
-  const stepPolling    = document.getElementById('step-polling');
-  const stepApikey     = document.getElementById('step-apikey');
-  const stepError      = document.getElementById('step-error');
-  const displayAddress = document.getElementById('display-address');
-  const planGrid       = document.getElementById('plan-grid');
-  const btnPay         = document.getElementById('btn-pay');
-  const pollingTitle   = document.getElementById('polling-title');
-  const pollingSub     = document.getElementById('polling-sub');
-  const accessTitle    = document.getElementById('access-title');
-  const accessLabel    = document.getElementById('access-label');
-  const apiKeyDisplay  = document.getElementById('api-key-display');
-  const keyExpiry      = document.getElementById('key-expiry');
-  const accessHelp     = document.getElementById('access-help');
-  const btnCopy        = document.getElementById('btn-copy');
-  const btnStart       = document.getElementById('btn-start');
-  const btnRetry       = document.getElementById('btn-retry');
-  const errorTitle     = document.getElementById('error-title');
-  const errorSub       = document.getElementById('error-sub');
+      const activeMeta = document.getElementById('active-meta');
+      const activeList = document.getElementById('active-list');
+      const activeEmpty = document.getElementById('active-empty');
 
-  /* ── Utilities ─────────────────────────────────────────────── */
-  const api = (path, opts) => fetch(BACKEND_URL + path, opts);
-  const TOKEN_STORAGE_KEY = 'auth_token';
+      const detailMeta = document.getElementById('detail-meta');
+      const detailEmpty = document.getElementById('detail-empty');
+      const detailShell = document.getElementById('detail-shell');
+      const detailName = document.getElementById('detail-name');
+      const detailUserId = document.getElementById('detail-user-id');
+      const detailVstar = document.getElementById('detail-vstar');
+      const detailChipRow = document.getElementById('detail-chip-row');
+      const detailSummary = document.getElementById('detail-summary');
+      const predictionsContent = document.getElementById('predictions-content');
+      const sessionsContent = document.getElementById('sessions-content');
+      const copyUserBtn = document.getElementById('copy-user-btn');
+      const openPredictionsLink = document.getElementById('open-predictions-link');
+      const openSessionsLink = document.getElementById('open-sessions-link');
 
-  function shortAddr(addr) {
-    if (!addr) return '';
-    return addr.slice(0, 6) + '…' + addr.slice(-4);
-  }
-
-  function fmtExpiry(ts) {
-    return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-  }
-
-  function decodeJwtPayload(token) {
-    if (!token) return null;
-    const tokenParts = token.split('.');
-    if (tokenParts.length !== 3) return null;
-
-    try {
-      const base64 = tokenParts[1]
-        .replace(/-/g, '+')
-        .replace(/_/g, '/')
-        .padEnd(Math.ceil(tokenParts[1].length / 4) * 4, '=');
-      return JSON.parse(atob(base64));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  function getStoredToken() {
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
-  }
-
-  function setStoredToken(token) {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
-  }
-
-  function clearStoredToken() {
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-  }
-
-  function getAuthHeaders() {
-    const token = getStoredToken();
-    return token ? { Authorization: 'Bearer ' + token } : {};
-  }
-
-  function replaceUrlParams(params) {
-    const query = params.toString();
-    const nextUrl = window.location.pathname + (query ? '?' + query : '') + window.location.hash;
-    window.history.replaceState({}, document.title, nextUrl);
-  }
-
-  function consumeRedirectState() {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const error = params.get('error');
-    const loggedOut = params.get('logged_out');
-
-    if (token) {
-      setStoredToken(token);
-      params.delete('token');
-    }
-
-    if (loggedOut) {
-      clearStoredToken();
-      params.delete('logged_out');
-    }
-
-    if (error) {
-      params.delete('error');
-    }
-
-    replaceUrlParams(params);
-    return { token, error, loggedOut };
-  }
-
-  async function getDiscordAuthStatus() {
-    const token = getStoredToken();
-    if (!token) return null;
-
-    const response = await api('/api/auth/status', {
-      headers: getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      clearStoredToken();
-      return null;
-    }
-
-    return response.json();
-  }
-
-  function loginWithDiscord() {
-    window.location.href = '/api/auth/discord';
-  }
-
-  async function logoutDiscord() {
-    try {
-      await api('/api/auth/logout', {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-    } catch (_) {
-      // Best effort logout; client token removal is the important part.
-    } finally {
-      clearStoredToken();
-      window.location.href = '/?logged_out=true';
-    }
-  }
-
-  function describeAuthError(errorCode) {
-    const messages = {
-      discord_auth_disabled: {
-        title: 'Discord Access Unavailable',
-        message: 'Discord login is not configured on this deployment yet. You can still continue with Ronin payment.'
-      },
-      discord_not_allowed: {
-        title: 'Discord Not Whitelisted',
-        message: 'That Discord account is not on the allowlist. You can still continue with Ronin payment.'
-      },
-      discord_auth_failed: {
-        title: 'Discord Login Failed',
-        message: 'Discord authentication did not complete. Please try again or continue with Ronin payment.'
-      },
-      discord_login_failed: {
-        title: 'Discord Session Failed',
-        message: 'Discord login succeeded but the local session could not be created. Please try again.'
-      },
-      token_generation_failed: {
-        title: 'Discord Access Failed',
-        message: 'The server could not issue a Discord access token. Please try again.'
+      function formatNumber(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number.toLocaleString() : '--';
       }
-    };
 
-    return messages[errorCode] || {
-      title: 'Access Error',
-      message: 'We could not complete the Discord access flow. You can still continue with Ronin payment.'
-    };
-  }
-
-  function showOnly(...sections) {
-    [stepConnect, stepPlans, stepPolling, stepApikey, stepError].forEach(el => el.classList.add('hidden'));
-    sections.forEach(el => el.classList.remove('hidden'));
-  }
-
-  function showAccessValue({ title, label, value, help, expiresAt, mode }) {
-    accessMode = mode;
-    accessTitle.textContent = title;
-    accessLabel.textContent = label;
-    apiKeyDisplay.textContent = value;
-    keyExpiry.textContent = expiresAt ? 'Expires: ' + fmtExpiry(expiresAt) : '';
-    accessHelp.textContent = help || '';
-    if (mode === 'discord') {
-      btnStart.textContent = 'Log Out';
-      btnStart.classList.remove('hidden');
-    } else if (mode === 'public') {
-      btnStart.textContent = 'Open Leaderboard';
-      btnStart.classList.remove('hidden');
-    } else {
-      btnStart.classList.add('hidden');
-    }
-    showOnly(stepApikey);
-  }
-
-  function showPublicAccess() {
-    showAccessValue({
-      title: 'Public Access Enabled',
-      label: 'Leaderboard URL',
-      value: LEADERBOARD_URL,
-      help: 'No Discord login, wallet payment, or API key is required. Public endpoints: /api/leaderboard, /api/active-players, /api/predictions/:userId, /api/sessions/:userId, and /api/health.',
-      expiresAt: null,
-      mode: 'public'
-    });
-  }
-
-  /* ── Wallet connection ──────────────────────────────────────── */
-  async function connectWallet() {
-    try {
-      btnConnect.disabled = true;
-      btnConnect.textContent = 'Connecting…';
-      const { requestRoninWalletConnector } = window.TantoConnect || {};
-      if (!requestRoninWalletConnector) {
-        throw new Error('Ronin Wallet connector not loaded. Make sure the Ronin Wallet extension is installed.');
+      function formatDelta(value, prefix) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return { text: '--', className: 'delta-flat' };
+        if (number > 0) return { text: (prefix || '+') + number, className: 'delta-up' };
+        if (number < 0) return { text: String(number), className: 'delta-down' };
+        return { text: '0', className: 'delta-flat' };
       }
-      connector = requestRoninWalletConnector();
-      const accounts = await connector.connect();
-      if (!accounts || !accounts.length) throw new Error('No accounts returned from wallet.');
-      userAddress = accounts[0];
 
-      // Load rates
-      rates = await api('/api/payments/rates').then(r => {
-        if (!r.ok) throw new Error('Failed to load pricing rates.');
-        return r.json();
-      });
-
-      // Render plan cards
-      renderPlans(rates.plans);
-
-      displayAddress.textContent = userAddress;
-      showOnly(stepPlans);
-    } catch (err) {
-      alert('Connection failed: ' + err.message);
-      btnConnect.disabled = false;
-      btnConnect.textContent = 'Use Ronin Wallet';
-    }
-  }
-
-  /* ── Plan cards ────────────────────────────────────────────── */
-  function renderPlans(plans) {
-    planGrid.innerHTML = '';
-    plans.forEach(plan => {
-      const id = plan.id;
-      const usdc = plan.usdc;
-      const ron  = plan.ron;
-      const days = plan.days;
-
-      const card = document.createElement('label');
-      card.className = 'plan-card';
-      card.innerHTML = `
-        <input type="radio" name="plan" value="${id}" />
-        <div class="plan-name">${planLabel(id)}</div>
-        <div class="plan-price">$${usdc} USDC</div>
-        <div class="plan-sub">${ron} RON</div>
-        <div class="plan-days">${days} days</div>
-      `;
-      card.addEventListener('click', () => selectPlan(id, card));
-      planGrid.appendChild(card);
-    });
-  }
-
-  function planLabel(id) {
-    const map = { '1month': '1 Month', '3month': '3 Months', '1year': '1 Year' };
-    return map[id] || id;
-  }
-
-  function selectPlan(planId, cardEl) {
-    selectedPlan = planId;
-    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
-    cardEl.classList.add('selected');
-    btnPay.disabled = false;
-  }
-
-  /* ── Payment flow ──────────────────────────────────────────── */
-  async function startPayment() {
-    if (!selectedPlan || !userAddress) return;
-    try {
-      btnPay.disabled = true;
-      btnPay.textContent = 'Creating session…';
-
-      // 1. Create payment session
-      const res = await api('/api/payments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: selectedPlan, token: 'USDC', userAddress })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(err.error || 'Failed to create payment session');
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
       }
-      const session = await res.json();
-      currentSessionId = session.sessionId;
 
-      // 2. Send transaction via Ronin Wallet
-      btnPay.textContent = 'Send payment…';
-      const amount = BigInt(session.amount);  // already in USDC smallest unit (6 decimals)
+      function shortId(value) {
+        if (!value) return '--';
+        const text = String(value);
+        return text.length > 16 ? text.slice(0, 8) + '...' + text.slice(-6) : text;
+      }
 
-      try {
-        await connector.sendTransaction({
-          to: session.paymentAddress,
-          value: '0x' + amount.toString(16),
-          data: session.sessionId,
-          parseBytes: false
+      function toEpoch(value) {
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        const parsed = Date.parse(value || '');
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      function formatRelative(value) {
+        const epoch = toEpoch(value);
+        if (!epoch) return 'unknown';
+
+        const diffMs = Date.now() - epoch;
+        const absMs = Math.abs(diffMs);
+        const minute = 60000;
+        const hour = 60 * minute;
+        const day = 24 * hour;
+        const suffix = diffMs >= 0 ? 'ago' : 'from now';
+
+        if (absMs < minute) return 'just now';
+        if (absMs < hour) return Math.round(absMs / minute) + 'm ' + suffix;
+        if (absMs < day) return Math.round(absMs / hour) + 'h ' + suffix;
+        return Math.round(absMs / day) + 'd ' + suffix;
+      }
+
+      function formatDateTime(value) {
+        const epoch = toEpoch(value);
+        if (!epoch) return '--';
+        return new Date(epoch).toLocaleString();
+      }
+
+      function normalizeActivePayload(payload) {
+        if (Array.isArray(payload)) {
+          return { updatedAt: null, players: payload };
+        }
+
+        if (payload && Array.isArray(payload.players)) {
+          return { updatedAt: payload.updatedAt || null, players: payload.players };
+        }
+
+        return { updatedAt: null, players: [] };
+      }
+
+      async function fetchJson(path) {
+        const response = await fetch(path, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin'
         });
-      } catch (txErr) {
-        // If user rejects, show retry
-        throw new Error('Transaction rejected by wallet: ' + txErr.message);
+
+        const text = await response.text();
+        let payload = null;
+        try {
+          payload = text ? JSON.parse(text) : null;
+        } catch (_) {
+          payload = text;
+        }
+
+        if (!response.ok) {
+          const error = new Error(
+            (payload && (payload.error || payload.message)) ||
+            ('Request failed with status ' + response.status)
+          );
+          error.status = response.status;
+          error.payload = payload;
+          throw error;
+        }
+
+        return payload;
       }
 
-      // 3. Start polling
-      showOnly(stepPolling);
-      pollingTitle.textContent = 'Waiting for confirmation…';
-      pollingSub.textContent = 'Transaction submitted. Waiting for blockchain confirmation.';
-      startPolling();
-
-    } catch (err) {
-      alert('Payment error: ' + err.message);
-      btnPay.disabled = false;
-      btnPay.textContent = 'Pay with Ronin Wallet';
-    }
-  }
-
-  /* ── Polling ───────────────────────────────────────────────── */
-  function startPolling() {
-    stopPolling();
-    pollTimer = setInterval(pollStatus, 3000);
-    // Also poll immediately
-    pollStatus();
-  }
-
-  function stopPolling() {
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
-  }
-
-  async function pollStatus() {
-    if (!currentSessionId) { stopPolling(); return; }
-    try {
-      const res = await api(`/api/payments/${currentSessionId}/status`);
-      if (!res.ok) return;  // keep polling
-      const status = await res.json();
-
-      if (status.status === 'confirmed') {
-        stopPolling();
-        showApiKey(status.apiKey, status.expiresAt);
-      } else if (status.status === 'expired') {
-        stopPolling();
-        showError('Payment Expired', 'The payment session timed out. Please try again.', 'plans');
+      function getPlayerById(userId) {
+        return state.leaderboard.find((player) => player.userId === userId)
+          || state.activePlayers.find((player) => player.userId === userId)
+          || null;
       }
-      // else pending — keep polling
-    } catch (_) {
-      // network glitch — keep polling
-    }
-  }
 
-  /* ── Result screens ─────────────────────────────────────────── */
-  function showApiKey(apiKey, expiresAt) {
-    showAccessValue({
-      title: 'Paid Access Ready',
-      label: 'API Key — keep this secret',
-      value: apiKey,
-      help: 'Use this value as X-API-Key on protected routes like /api/leaderboard and /api/predictions/:userId.',
-      expiresAt,
-      mode: 'payment'
-    });
-  }
+      function showGlobalStatus(message, isError) {
+        if (!message) {
+          globalStatus.className = 'status-banner hidden';
+          globalStatus.textContent = '';
+          return;
+        }
 
-  function showDiscordAccess(authStatus) {
-    const token = getStoredToken();
-    const payload = decodeJwtPayload(token);
-    showAccessValue({
-      title: 'Discord Access Granted',
-      label: 'Discord Access Token — keep this secret',
-      value: token || '',
-      help: authStatus.user.username + ' is allowlisted. Use this value as Authorization: Bearer <token> on protected routes.',
-      expiresAt: payload && payload.exp ? payload.exp * 1000 : null,
-      mode: 'discord'
-    });
-  }
+        globalStatus.textContent = message;
+        globalStatus.className = isError ? 'status-banner error' : 'status-banner';
+      }
 
-  function showError(title, sub, nextTarget) {
-    retryTarget = nextTarget || 'access';
-    errorTitle.textContent = title;
-    errorSub.textContent = sub;
-    showOnly(stepError);
-  }
+      function renderStats() {
+        const latestSeen = state.leaderboard.reduce((max, player) => {
+          const value = toEpoch(player.lastSeenAt);
+          return value && value > max ? value : max;
+        }, 0);
 
-  /* ── Copy button ────────────────────────────────────────────── */
-  btnCopy.addEventListener('click', () => {
-    const key = apiKeyDisplay.textContent;
-    if (!key) return;
-    navigator.clipboard.writeText(key).then(() => {
-      btnCopy.textContent = 'Copied!';
-      btnCopy.classList.add('copied');
-      setTimeout(() => {
-        btnCopy.textContent = 'Copy';
-        btnCopy.classList.remove('copied');
-      }, 2000);
-    });
-  });
+        trackedCount.textContent = formatNumber(state.leaderboard.length);
+        trackedSub.textContent = state.leaderboard.length
+          ? 'Top ' + Math.min(state.leaderboard.length, 300) + ' leaderboard players loaded'
+          : 'No leaderboard players loaded';
 
-  /* ── Retry ──────────────────────────────────────────────────── */
-  btnRetry.addEventListener('click', () => {
-    if (retryTarget === 'plans') {
-      currentSessionId = null;
-      selectedPlan = null;
-      document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
-      btnPay.disabled = true;
-      btnPay.textContent = 'Pay with Ronin Wallet';
-      showOnly(stepPlans);
-      return;
-    }
+        activeCount.textContent = formatNumber(state.activePlayers.length);
+        activeSub.textContent = state.activePlayers.length
+          ? 'Recent results detected by the session tracker'
+          : 'No active movement in the latest snapshot';
 
-    showOnly(stepConnect);
-  });
+        freshnessValue.textContent = latestSeen ? formatRelative(latestSeen) : '--';
+        freshnessSub.textContent = latestSeen
+          ? 'Newest leaderboard timestamp: ' + formatDateTime(latestSeen)
+          : 'Leaderboard freshness not available yet';
 
-  btnStart.addEventListener('click', () => {
-    if (accessMode === 'discord') {
-      logoutDiscord();
-      return;
-    }
+        refreshValue.textContent = state.lastRefreshAt ? formatRelative(state.lastRefreshAt) : '--';
+        refreshSub.textContent = state.lastRefreshAt
+          ? 'Last page refresh: ' + formatDateTime(state.lastRefreshAt)
+          : 'Waiting for the first successful refresh';
+      }
 
-    if (accessMode === 'public') {
-      window.location.href = LEADERBOARD_URL;
-    }
-  });
+      function getFilteredLeaderboard() {
+        const filter = state.filterText.trim().toLowerCase();
+        const baseList = state.leaderboard.slice(0, MAX_LEADERBOARD_ROWS);
 
-  /* ── Event listeners ────────────────────────────────────────── */
-  btnDiscord.addEventListener('click', loginWithDiscord);
-  btnConnect.addEventListener('click', connectWallet);
-  btnPay.addEventListener('click', startPayment);
+        if (!filter) return baseList;
 
-  /* ── Initial access routing ─────────────────────────────────── */
-  async function init() {
-    consumeRedirectState();
-    showPublicAccess();
-  }
+        return baseList.filter((player) => {
+          return String(player.name || '').toLowerCase().includes(filter)
+            || String(player.userId || '').toLowerCase().includes(filter);
+        });
+      }
 
-  init().finally(() => loadingOverlay.remove());
+      function renderLeaderboard() {
+        const players = getFilteredLeaderboard();
 
-})();
-</script>
+        leaderboardMeta.textContent = state.leaderboard.length
+          ? 'Showing ' + players.length + ' of ' + Math.min(state.leaderboard.length, MAX_LEADERBOARD_ROWS) + ' rows'
+          : 'Leaderboard is still loading';
+
+        if (!players.length) {
+          leaderboardList.innerHTML = '';
+          leaderboardEmpty.className = 'empty-state';
+          leaderboardEmpty.textContent = state.leaderboard.length
+            ? 'No players match the current filter.'
+            : 'No leaderboard data is available yet.';
+          return;
+        }
+
+        leaderboardEmpty.className = 'empty-state hidden';
+        leaderboardList.innerHTML = players.map((player) => {
+          const selected = player.userId === state.selectedPlayerId ? ' selected' : '';
+          const vstarDelta = formatDelta(Number(player.vstar) - Number(player.lastVstar || player.vstar));
+          return [
+            '<button class="leaderboard-row' + selected + '" type="button" data-player-id="' + escapeHtml(player.userId) + '">',
+            '  <div class="rank-badge">#' + escapeHtml(player.topRank ?? '--') + '</div>',
+            '  <div>',
+            '    <p class="player-name">' + escapeHtml(player.name || 'Unknown Player') + '</p>',
+            '    <div class="player-meta">' + escapeHtml(player.rank || 'Unknown rank') + ' · ' + escapeHtml(shortId(player.userId)) + '</div>',
+            '  </div>',
+            '  <div class="player-metrics">',
+            '    <div class="metric-primary">' + escapeHtml(formatNumber(player.vstar)) + ' VSTAR</div>',
+            '    <div class="player-meta ' + vstarDelta.className + '">Delta ' + escapeHtml(vstarDelta.text) + '</div>',
+            '  </div>',
+            '</button>'
+          ].join('');
+        }).join('');
+
+        leaderboardList.querySelectorAll('[data-player-id]').forEach((button) => {
+          button.addEventListener('click', function () {
+            selectPlayer(this.getAttribute('data-player-id'));
+          });
+        });
+      }
+
+      function renderActivePlayers() {
+        activeMeta.textContent = state.activeUpdatedAt
+          ? 'Snapshot updated ' + formatRelative(state.activeUpdatedAt)
+          : 'Using the latest public activity payload';
+
+        if (!state.activePlayers.length) {
+          activeList.innerHTML = '';
+          activeEmpty.className = 'empty-state';
+          activeEmpty.textContent = 'No recent activity was returned by the tracker.';
+          return;
+        }
+
+        activeEmpty.className = 'empty-state hidden';
+        activeList.innerHTML = state.activePlayers.slice(0, 12).map((player) => {
+          const rankDelta = formatDelta(player.rankChange, '+');
+          const winChipClass = player.won === true ? 'good' : player.won === false ? 'bad' : '';
+          const winChipText = player.won === true ? 'Won latest' : player.won === false ? 'Lost latest' : 'Result unknown';
+
+          return [
+            '<button class="activity-card" type="button" data-player-id="' + escapeHtml(player.userId) + '">',
+            '  <div class="activity-header">',
+            '    <div>',
+            '      <p class="player-name">' + escapeHtml(player.name || 'Unknown Player') + '</p>',
+            '      <div class="player-meta">#' + escapeHtml(player.topRank ?? '--') + ' · ' + escapeHtml(formatNumber(player.vstar)) + ' VSTAR</div>',
+            '    </div>',
+            '    <div class="mini-text ' + rankDelta.className + '">' + escapeHtml(rankDelta.text) + ' rank</div>',
+            '  </div>',
+            '  <div class="chip-row">',
+            '    <span class="chip ' + winChipClass + '">' + escapeHtml(winChipText) + '</span>',
+            '    <span class="chip">Seen ' + escapeHtml(formatRelative(player.battleEndedAt || player.endedAtEpoch || player.endedAtLocalISO)) + '</span>',
+            '    <span class="chip">' + escapeHtml(shortId(player.userId)) + '</span>',
+            '  </div>',
+            '</button>'
+          ].join('');
+        }).join('');
+
+        activeList.querySelectorAll('[data-player-id]').forEach((button) => {
+          button.addEventListener('click', function () {
+            selectPlayer(this.getAttribute('data-player-id'));
+          });
+        });
+      }
+
+      function renderSummaryItems(items) {
+        return items.map((item) => {
+          return [
+            '<div class="summary-item">',
+            '  <div class="summary-label">' + escapeHtml(item.label) + '</div>',
+            '  <div class="summary-value">' + escapeHtml(item.value) + '</div>',
+            '</div>'
+          ].join('');
+        }).join('');
+      }
+
+      function renderPredictionsContent(detail) {
+        if (!detail || detail.loading) {
+          predictionsContent.innerHTML = '<div class="loading-state">Loading public prediction output...</div>';
+          return;
+        }
+
+        if (detail.predictionsError) {
+          predictionsContent.innerHTML = '<div class="empty-state error">' + escapeHtml(detail.predictionsError) + '</div>';
+          return;
+        }
+
+        const payload = detail.predictionsPayload || {};
+        const predictions = Array.isArray(payload.predictions) ? payload.predictions : [];
+
+        if (!predictions.length) {
+          predictionsContent.innerHTML = '<div class="empty-state">' + escapeHtml(payload.message || 'Not enough session history for a sniper prediction yet.') + '</div>';
+          return;
+        }
+
+        predictionsContent.innerHTML = predictions.slice(0, 8).map((item, index) => {
+          const hour = item.local_time || item.time || item.window || 'Prediction ' + (index + 1);
+          const probability = item.probability != null
+            ? Math.round(Number(item.probability) * (Number(item.probability) <= 1 ? 100 : 1))
+            : null;
+          const confidence = item.confidence || item.confidence_level || item.label || 'Heuristic signal';
+
+          return [
+            '<div class="prediction-card">',
+            '  <strong>' + escapeHtml(hour) + '</strong>',
+            '  <div class="player-meta">Probability: ' + escapeHtml(probability != null ? probability + '%' : 'n/a') + '</div>',
+            '  <div class="player-meta">Confidence: ' + escapeHtml(confidence) + '</div>',
+            item.reason ? '  <div class="mini-text" style="margin-top:8px;">' + escapeHtml(item.reason) + '</div>' : '',
+            '</div>'
+          ].join('');
+        }).join('');
+      }
+
+      function renderSessionsContent(detail) {
+        if (!detail || detail.loading) {
+          sessionsContent.innerHTML = '<div class="loading-state">Loading public session summary...</div>';
+          return;
+        }
+
+        if (detail.sessionsError) {
+          sessionsContent.innerHTML = '<div class="empty-state error">' + escapeHtml(detail.sessionsError) + '</div>';
+          return;
+        }
+
+        const payload = detail.sessionsPayload;
+        if (!payload || typeof payload !== 'object') {
+          sessionsContent.innerHTML = '<div class="empty-state">No session data is available for this player yet.</div>';
+          return;
+        }
+
+        if (payload.error) {
+          sessionsContent.innerHTML = '<div class="empty-state">' + escapeHtml(payload.error) + '</div>';
+          return;
+        }
+
+        const scalarEntries = Object.entries(payload).filter(function (entry) {
+          return entry[1] == null || ['string', 'number', 'boolean'].includes(typeof entry[1]);
+        });
+
+        const cards = scalarEntries.slice(0, 6).map(function (entry) {
+          return [
+            '<div class="session-card">',
+            '  <strong>' + escapeHtml(entry[0]) + '</strong>',
+            '  <div class="mini-text">' + escapeHtml(String(entry[1])) + '</div>',
+            '</div>'
+          ].join('');
+        }).join('');
+
+        const rawJson = JSON.stringify(payload, null, 2);
+        sessionsContent.innerHTML = [
+          cards ? cards : '',
+          '<pre class="session-pre">' + escapeHtml(rawJson) + '</pre>'
+        ].join('');
+      }
+
+      function renderDetail() {
+        const player = state.selectedPlayerId ? getPlayerById(state.selectedPlayerId) : null;
+
+        if (!player) {
+          detailMeta.textContent = 'Tap a player to inspect the public sniper output';
+          detailEmpty.className = 'empty-state';
+          detailShell.className = 'detail-shell hidden';
+          return;
+        }
+
+        const detail = state.detailCache.get(player.userId);
+        detailMeta.textContent = 'Inspecting ' + (player.name || player.userId);
+        detailEmpty.className = 'empty-state hidden';
+        detailShell.className = 'detail-shell';
+
+        detailName.textContent = player.name || 'Unknown Player';
+        detailUserId.textContent = player.userId;
+        detailVstar.textContent = formatNumber(player.vstar) + ' VSTAR';
+        detailChipRow.innerHTML = [
+          '<span class="chip">#' + escapeHtml(player.topRank ?? '--') + ' current rank</span>',
+          '<span class="chip">' + escapeHtml(player.rank || 'Unknown tier') + '</span>',
+          player.lastSeenAt ? '<span class="chip">Last seen ' + escapeHtml(formatRelative(player.lastSeenAt)) + '</span>' : '',
+          player.battleEndedAt ? '<span class="chip">Latest battle ' + escapeHtml(formatRelative(player.battleEndedAt)) + '</span>' : ''
+        ].filter(Boolean).join('');
+
+        detailSummary.innerHTML = renderSummaryItems([
+          { label: 'Player Name', value: player.name || 'Unknown' },
+          { label: 'User ID', value: shortId(player.userId) },
+          { label: 'Current Rank', value: '#' + (player.topRank ?? '--') },
+          { label: 'Current VStar', value: formatNumber(player.vstar) },
+          { label: 'Previous VStar', value: formatNumber(player.lastVstar ?? player.vstar) },
+          { label: 'Last Seen', value: formatDateTime(player.lastSeenAt || player.battleEndedAt || player.endedAtEpoch || player.endedAtLocalISO) }
+        ]);
+
+        openPredictionsLink.href = '/api/predictions/' + encodeURIComponent(player.userId);
+        openSessionsLink.href = '/api/sessions/' + encodeURIComponent(player.userId);
+
+        renderPredictionsContent(detail);
+        renderSessionsContent(detail);
+      }
+
+      async function loadPlayerDetail(userId, force) {
+        if (!userId) return;
+
+        const cached = state.detailCache.get(userId);
+        if (cached && cached.loading) return;
+        if (cached && !force && cached.loadedAt && Date.now() - cached.loadedAt < AUTO_REFRESH_MS) {
+          renderDetail();
+          return;
+        }
+
+        state.detailCache.set(userId, { loading: true });
+        renderDetail();
+
+        const detail = {
+          loading: false,
+          loadedAt: Date.now(),
+          predictionsPayload: null,
+          sessionsPayload: null,
+          predictionsError: null,
+          sessionsError: null
+        };
+
+        try {
+          detail.predictionsPayload = await fetchJson('/api/predictions/' + encodeURIComponent(userId));
+        } catch (error) {
+          detail.predictionsError = error.message || 'Prediction request failed.';
+          detail.predictionsPayload = error.payload || null;
+        }
+
+        try {
+          detail.sessionsPayload = await fetchJson('/api/sessions/' + encodeURIComponent(userId));
+        } catch (error) {
+          detail.sessionsError = error.message || 'Session request failed.';
+          detail.sessionsPayload = error.payload || null;
+        }
+
+        state.detailCache.set(userId, detail);
+        renderDetail();
+      }
+
+      function selectPlayer(userId) {
+        state.selectedPlayerId = userId;
+        renderLeaderboard();
+        renderDetail();
+        loadPlayerDetail(userId);
+      }
+
+      async function loadLiveData() {
+        if (state.loading) return;
+
+        state.loading = true;
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Refreshing...';
+        showGlobalStatus('Refreshing leaderboard and activity feeds...', false);
+
+        try {
+          const leaderboardPayload = await fetchJson('/api/leaderboard');
+          const activePayload = normalizeActivePayload(await fetchJson('/api/active-players'));
+
+          state.leaderboard = Array.isArray(leaderboardPayload) ? leaderboardPayload : [];
+          state.activePlayers = Array.isArray(activePayload.players) ? activePayload.players : [];
+          state.activeUpdatedAt = activePayload.updatedAt || null;
+          state.lastRefreshAt = Date.now();
+
+          if (!state.selectedPlayerId) {
+            const firstChoice = state.activePlayers[0] || state.leaderboard[0];
+            state.selectedPlayerId = firstChoice ? firstChoice.userId : null;
+          } else if (!getPlayerById(state.selectedPlayerId)) {
+            const fallback = state.activePlayers[0] || state.leaderboard[0];
+            state.selectedPlayerId = fallback ? fallback.userId : null;
+          }
+
+          renderStats();
+          renderLeaderboard();
+          renderActivePlayers();
+          renderDetail();
+          showGlobalStatus('Live tracker loaded successfully. No login is required.', false);
+
+          if (state.selectedPlayerId) {
+            loadPlayerDetail(state.selectedPlayerId);
+          }
+        } catch (error) {
+          renderStats();
+          leaderboardMeta.textContent = 'Failed to refresh';
+          activeMeta.textContent = 'Failed to refresh';
+          leaderboardList.innerHTML = '';
+          activeList.innerHTML = '';
+          leaderboardEmpty.className = 'empty-state error';
+          activeEmpty.className = 'empty-state error';
+          leaderboardEmpty.textContent = 'The leaderboard feed failed to load.';
+          activeEmpty.textContent = 'The recent activity feed failed to load.';
+          showGlobalStatus(error.message || 'The live tracker could not be refreshed.', true);
+        } finally {
+          state.loading = false;
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = 'Refresh live data';
+        }
+      }
+
+      refreshBtn.addEventListener('click', function () {
+        loadLiveData();
+      });
+
+      searchInput.addEventListener('input', function () {
+        state.filterText = this.value || '';
+        renderLeaderboard();
+      });
+
+      clearSearchBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        state.filterText = '';
+        renderLeaderboard();
+      });
+
+      topTenBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        state.filterText = '';
+        leaderboardMeta.textContent = 'Showing the top 10 leaderboard rows';
+        leaderboardList.innerHTML = state.leaderboard.slice(0, 10).map(function (player) {
+          const selected = player.userId === state.selectedPlayerId ? ' selected' : '';
+          const vstarDelta = formatDelta(Number(player.vstar) - Number(player.lastVstar || player.vstar));
+          return [
+            '<button class="leaderboard-row' + selected + '" type="button" data-player-id="' + escapeHtml(player.userId) + '">',
+            '  <div class="rank-badge">#' + escapeHtml(player.topRank ?? '--') + '</div>',
+            '  <div>',
+            '    <p class="player-name">' + escapeHtml(player.name || 'Unknown Player') + '</p>',
+            '    <div class="player-meta">' + escapeHtml(player.rank || 'Unknown rank') + ' · ' + escapeHtml(shortId(player.userId)) + '</div>',
+            '  </div>',
+            '  <div class="player-metrics">',
+            '    <div class="metric-primary">' + escapeHtml(formatNumber(player.vstar)) + ' VSTAR</div>',
+            '    <div class="player-meta ' + vstarDelta.className + '">Delta ' + escapeHtml(vstarDelta.text) + '</div>',
+            '  </div>',
+            '</button>'
+          ].join('');
+        }).join('');
+
+        leaderboardList.querySelectorAll('[data-player-id]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            selectPlayer(this.getAttribute('data-player-id'));
+          });
+        });
+
+        leaderboardEmpty.className = 'empty-state hidden';
+      });
+
+      copyUserBtn.addEventListener('click', function () {
+        if (!state.selectedPlayerId) return;
+
+        navigator.clipboard.writeText(state.selectedPlayerId).then(() => {
+          const previous = copyUserBtn.textContent;
+          copyUserBtn.textContent = 'Copied';
+          setTimeout(function () {
+            copyUserBtn.textContent = previous;
+          }, 1600);
+        }).catch(function () {
+          copyUserBtn.textContent = 'Copy failed';
+          setTimeout(function () {
+            copyUserBtn.textContent = 'Copy user ID';
+          }, 1600);
+        });
+      });
+
+      renderStats();
+      renderLeaderboard();
+      renderActivePlayers();
+      renderDetail();
+      loadLiveData();
+      window.setInterval(loadLiveData, AUTO_REFRESH_MS);
+    })();
+  </script>
 </body>
 </html>
