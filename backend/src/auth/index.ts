@@ -1,7 +1,4 @@
 import { Express } from 'express';
-import passport from 'passport';
-import { configurePassport } from './passport';
-import { sessionMiddleware } from './session';
 import authRoutes from './routes';
 import { getAuthDisableReason, hasDiscordAuthEnabled, validateAuthConfig } from './config';
 
@@ -13,12 +10,6 @@ export function initializeAuth(app: Express): void {
   }
 
   validateAuthConfig();
-
-  app.use(sessionMiddleware);
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  configurePassport();
   app.use('/api/auth', authRoutes);
 
   console.log('Discord allowlist auth enabled');
