@@ -3,6 +3,7 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 import { config } from './config';
 import { vstarScheduler } from './core/vstarScheduler';
+import { initializeAuth } from './auth';
 import { apiRouter } from './routes/api';
 import { paymentsRouter } from './routes/payments';
 import { initPaymentDb, closePaymentDb } from './services/paymentDb';
@@ -10,6 +11,9 @@ import { startPaymentVerifier, stopPaymentVerifier } from './services/paymentVer
 
 const app = express();
 const DEFAULT_DEV_ORIGIN = 'http://localhost:5174';
+
+// Render terminates TLS upstream, so secure session cookies need proxy trust.
+app.set('trust proxy', 1);
 
 function getAllowedOrigins(): string[] {
   const origins = [...config.cors.origins];
@@ -45,6 +49,7 @@ app.use((_req, res, next) => {
   next();
 });
 
+initializeAuth(app);
 app.use('/api', apiRouter);
 app.use('/api/payments', paymentsRouter);
 

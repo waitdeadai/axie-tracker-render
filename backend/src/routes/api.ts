@@ -3,6 +3,7 @@ import { state } from '../core/state';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { verifyToken } from '../auth/jwt';
 import { validateApiKey } from '../services/paymentDb';
 
 const router = Router();
@@ -22,10 +23,27 @@ router.get('/health', (_req, res) => {
 
 // X-API-Key auth middleware using paymentDb
 function apiKeyAuth(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  const bearerToken =
+    authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : undefined;
+
+  if (bearerToken) {
+    const user = verifyToken(bearerToken.trim());
+    if (user?.isAuthorized) {
+      (req as Request & { apiKeyInfo?: { userAddress: string; plan: string; expiresAt: number } }).apiKeyInfo = {
+        userAddress: `discord:${user.id}`,
+        plan: 'discord-allowlist',
+        expiresAt: user.exp ? user.exp * 1000 : Number.MAX_SAFE_INTEGER
+      };
+      next();
+      return;
+    }
+  }
+
   const key = req.headers['x-api-key'] as string | undefined;
 
   if (!key) {
-    res.status(401).json({ error: 'Missing X-API-Key header' });
+    res.status(401).json({ error: 'Missing Authorization bearer token or X-API-Key header' });
     return;
   }
 
@@ -42,7 +60,7 @@ function apiKeyAuth(req: Request, res: Response, next: NextFunction): void {
   const validation = validateApiKey(key);
 
   if (!validation || !validation.valid) {
-    res.status(401).json({ error: 'Invalid or expired API key' });
+    res.status(401).json({ error: 'Invalid or expired access token or API key' });
     return;
   }
 

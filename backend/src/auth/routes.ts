@@ -1,52 +1,45 @@
-import { Router } from 'express';
+import { Request, Router } from 'express';
 import passport from 'passport';
 import { generateToken, authenticateJWT, AuthenticatedRequest } from './jwt';
+import { hasDiscordAuthEnabled } from './config';
 
 const router = Router();
 
-function getFrontendUrl(): URL {
-  const configuredUrl = process.env.FRONTEND_URL?.trim() || 'http://localhost:5174/';
-  const frontendUrl = new URL(configuredUrl);
-
-  if (!frontendUrl.pathname.endsWith('/')) {
-    frontendUrl.pathname = `${frontendUrl.pathname}/`;
-  }
-
-  frontendUrl.search = '';
-  frontendUrl.hash = '';
-  return frontendUrl;
+function buildRootRedirect(params: Record<string, string>): string {
+  const search = new URLSearchParams(params).toString();
+  return search ? `/?${search}` : '/';
 }
 
-function buildFrontendRedirect(params: Record<string, string>): string {
-  const frontendUrl = getFrontendUrl();
-
-  for (const [key, value] of Object.entries(params)) {
-    frontendUrl.searchParams.set(key, value);
+router.get('/discord', (req, res, next) => {
+  if (!hasDiscordAuthEnabled()) {
+    return res.redirect(buildRootRedirect({ error: 'discord_auth_disabled' }));
   }
 
-  return frontendUrl.toString();
-}
+  passport.authenticate('discord')(req, res, next);
+});
 
-router.get('/discord', passport.authenticate('discord'));
+router.get('/discord/callback', (req: Request, res, next) => {
+  if (!hasDiscordAuthEnabled()) {
+    return res.redirect(buildRootRedirect({ error: 'discord_auth_disabled' }));
+  }
 
-router.get('/discord/callback', (req, res, next) => {
   passport.authenticate(
     'discord',
     (error: unknown, user: any, info: { code?: string } | undefined) => {
       if (error) {
         console.error('Discord OAuth callback failed:', error);
-        return res.redirect(buildFrontendRedirect({ error: 'discord_auth_failed' }));
+        return res.redirect(buildRootRedirect({ error: 'discord_auth_failed' }));
       }
 
       if (!user) {
         const authError = info?.code || 'discord_auth_failed';
-        return res.redirect(buildFrontendRedirect({ error: authError }));
+        return res.redirect(buildRootRedirect({ error: authError }));
       }
 
       req.logIn(user, (loginError) => {
         if (loginError) {
           console.error('Passport login session failed:', loginError);
-          return res.redirect(buildFrontendRedirect({ error: 'discord_login_failed' }));
+          return res.redirect(buildRootRedirect({ error: 'discord_login_failed' }));
         }
 
         try {
@@ -59,11 +52,11 @@ router.get('/discord/callback', (req, res, next) => {
             isAuthorized: Boolean(user.isAuthorized)
           });
 
-          console.log(`Redirecting authorized user ${user.username} to frontend`);
-          return res.redirect(buildFrontendRedirect({ token }));
+          console.log(`Redirecting authorized user ${user.username} to root access page`);
+          return res.redirect(buildRootRedirect({ token }));
         } catch (tokenError) {
           console.error('JWT generation failed:', tokenError);
-          return res.redirect(buildFrontendRedirect({ error: 'token_generation_failed' }));
+          return res.redirect(buildRootRedirect({ error: 'token_generation_failed' }));
         }
       });
     }
@@ -89,13 +82,6 @@ router.get('/status-public', (_req, res) => {
     authenticated: false,
     authorized: false,
     user: null
-  });
-});
-
-router.get('/failed', (_req, res) => {
-  res.status(401).json({
-    success: false,
-    message: 'Fallo la autenticacion con Discord'
   });
 });
 
@@ -126,7 +112,7 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/logout', (_req, res) => {
-  res.redirect(buildFrontendRedirect({ logged_out: 'true' }));
+  res.redirect(buildRootRedirect({ logged_out: 'true' }));
 });
 
 router.get('/protected', authenticateJWT, (req: AuthenticatedRequest, res) => {

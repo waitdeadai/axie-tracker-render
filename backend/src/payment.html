@@ -260,8 +260,8 @@
 <div id="loading-overlay">
   <div class="loading-card">
     <span class="spinner"></span>
-    <div class="loading-title">Loading wallet connector…</div>
-    <div class="loading-sub">Make sure the Ronin Wallet extension is installed</div>
+    <div class="loading-title">Checking access options…</div>
+    <div class="loading-sub">Allowlisted Discord access and Ronin payment are loading</div>
   </div>
 </div>
 
@@ -273,15 +273,21 @@
     <p>AI-powered play predictions</p>
   </div>
 
-  <!-- Step 1: Connect Wallet -->
-  <div id="step-connect" class="section">
-    <div class="section-title">Step 1 — Connect Wallet</div>
-    <button id="btn-connect" class="btn btn-primary btn-full">Connect Ronin Wallet</button>
+  <!-- Step 1: Choose access path -->
+  <div id="step-connect" class="section hidden">
+    <div class="section-title">Step 1 — Access</div>
+    <div class="status-box">
+      <div class="status-title">Already whitelisted on Discord?</div>
+      <div class="status-sub">Continue with Discord to skip Ronin payment. If not, unlock access with a wallet payment.</div>
+      <button id="btn-discord" class="btn btn-secondary btn-full" style="margin-top: 16px;">Continue with Discord</button>
+      <hr class="divider" />
+      <button id="btn-connect" class="btn btn-primary btn-full">Use Ronin Wallet</button>
+    </div>
   </div>
 
   <!-- Step 2: Plan Selection (hidden until connected) -->
   <div id="step-plans" class="section hidden">
-    <div class="section-title">Step 2 — Select Plan</div>
+    <div class="section-title">Step 2 — Wallet Plan</div>
     <div class="address-badge" id="display-address"></div>
     <div style="margin-top: 14px;">
       <div class="section-title" style="margin-bottom: 10px;">Choose your plan</div>
@@ -304,16 +310,17 @@
 
   <!-- Step 4: API Key (shown on confirmed) -->
   <div id="step-apikey" class="section hidden">
-    <div class="section-title">Your API Key</div>
+    <div class="section-title" id="access-title">Your Access</div>
     <div class="api-key-box">
-      <div class="api-key-label">API Key — keep this secret</div>
+      <div class="api-key-label" id="access-label">API Key — keep this secret</div>
       <div class="api-key-row">
         <div class="api-key-value" id="api-key-display"></div>
         <button class="copy-btn" id="btn-copy">Copy</button>
       </div>
       <div style="margin-top: 10px; font-size: 0.8rem; color: #8b949e;" id="key-expiry"></div>
+      <div style="margin-top: 10px; font-size: 0.8rem; color: #8b949e;" id="access-help"></div>
     </div>
-    <button id="btn-start" class="btn btn-secondary btn-full" style="margin-top: 16px;">Start Using</button>
+    <button id="btn-start" class="btn btn-secondary btn-full hidden" style="margin-top: 16px;">Log Out</button>
   </div>
 
   <!-- Step 5: Error / Retry -->
@@ -346,9 +353,12 @@
   let rates = null;          // from /api/payments/rates
   let currentSessionId = null;
   let pollTimer = null;
+  let accessMode = 'payment';
+  let retryTarget = 'access';
 
   /* ── DOM refs ──────────────────────────────────────────────── */
   const loadingOverlay = document.getElementById('loading-overlay');
+  const btnDiscord     = document.getElementById('btn-discord');
   const btnConnect     = document.getElementById('btn-connect');
   const stepConnect    = document.getElementById('step-connect');
   const stepPlans      = document.getElementById('step-plans');
@@ -360,8 +370,11 @@
   const btnPay         = document.getElementById('btn-pay');
   const pollingTitle   = document.getElementById('polling-title');
   const pollingSub     = document.getElementById('polling-sub');
+  const accessTitle    = document.getElementById('access-title');
+  const accessLabel    = document.getElementById('access-label');
   const apiKeyDisplay  = document.getElementById('api-key-display');
   const keyExpiry      = document.getElementById('key-expiry');
+  const accessHelp     = document.getElementById('access-help');
   const btnCopy        = document.getElementById('btn-copy');
   const btnStart       = document.getElementById('btn-start');
   const btnRetry       = document.getElementById('btn-retry');
@@ -370,6 +383,7 @@
 
   /* ── Utilities ─────────────────────────────────────────────── */
   const api = (path, opts) => fetch(BACKEND_URL + path, opts);
+  const TOKEN_STORAGE_KEY = 'auth_token';
 
   function shortAddr(addr) {
     if (!addr) return '';
@@ -380,9 +394,147 @@
     return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
+  function decodeJwtPayload(token) {
+    if (!token) return null;
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) return null;
+
+    try {
+      const base64 = tokenParts[1]
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
+        .padEnd(Math.ceil(tokenParts[1].length / 4) * 4, '=');
+      return JSON.parse(atob(base64));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getStoredToken() {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  }
+
+  function setStoredToken(token) {
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  }
+
+  function clearStoredToken() {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  }
+
+  function getAuthHeaders() {
+    const token = getStoredToken();
+    return token ? { Authorization: 'Bearer ' + token } : {};
+  }
+
+  function replaceUrlParams(params) {
+    const query = params.toString();
+    const nextUrl = window.location.pathname + (query ? '?' + query : '') + window.location.hash;
+    window.history.replaceState({}, document.title, nextUrl);
+  }
+
+  function consumeRedirectState() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const error = params.get('error');
+    const loggedOut = params.get('logged_out');
+
+    if (token) {
+      setStoredToken(token);
+      params.delete('token');
+    }
+
+    if (loggedOut) {
+      clearStoredToken();
+      params.delete('logged_out');
+    }
+
+    if (error) {
+      params.delete('error');
+    }
+
+    replaceUrlParams(params);
+    return { token, error, loggedOut };
+  }
+
+  async function getDiscordAuthStatus() {
+    const token = getStoredToken();
+    if (!token) return null;
+
+    const response = await api('/api/auth/status', {
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      clearStoredToken();
+      return null;
+    }
+
+    return response.json();
+  }
+
+  function loginWithDiscord() {
+    window.location.href = '/api/auth/discord';
+  }
+
+  async function logoutDiscord() {
+    try {
+      await api('/api/auth/logout', {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+    } catch (_) {
+      // Best effort logout; client token removal is the important part.
+    } finally {
+      clearStoredToken();
+      window.location.href = '/?logged_out=true';
+    }
+  }
+
+  function describeAuthError(errorCode) {
+    const messages = {
+      discord_auth_disabled: {
+        title: 'Discord Access Unavailable',
+        message: 'Discord login is not configured on this deployment yet. You can still continue with Ronin payment.'
+      },
+      discord_not_allowed: {
+        title: 'Discord Not Whitelisted',
+        message: 'That Discord account is not on the allowlist. You can still continue with Ronin payment.'
+      },
+      discord_auth_failed: {
+        title: 'Discord Login Failed',
+        message: 'Discord authentication did not complete. Please try again or continue with Ronin payment.'
+      },
+      discord_login_failed: {
+        title: 'Discord Session Failed',
+        message: 'Discord login succeeded but the local session could not be created. Please try again.'
+      },
+      token_generation_failed: {
+        title: 'Discord Access Failed',
+        message: 'The server could not issue a Discord access token. Please try again.'
+      }
+    };
+
+    return messages[errorCode] || {
+      title: 'Access Error',
+      message: 'We could not complete the Discord access flow. You can still continue with Ronin payment.'
+    };
+  }
+
   function showOnly(...sections) {
     [stepConnect, stepPlans, stepPolling, stepApikey, stepError].forEach(el => el.classList.add('hidden'));
     sections.forEach(el => el.classList.remove('hidden'));
+  }
+
+  function showAccessValue({ title, label, value, help, expiresAt, mode }) {
+    accessMode = mode;
+    accessTitle.textContent = title;
+    accessLabel.textContent = label;
+    apiKeyDisplay.textContent = value;
+    keyExpiry.textContent = expiresAt ? 'Expires: ' + fmtExpiry(expiresAt) : '';
+    accessHelp.textContent = help || '';
+    btnStart.classList.toggle('hidden', mode !== 'discord');
+    showOnly(stepApikey);
   }
 
   /* ── Wallet connection ──────────────────────────────────────── */
@@ -413,7 +565,7 @@
     } catch (err) {
       alert('Connection failed: ' + err.message);
       btnConnect.disabled = false;
-      btnConnect.textContent = 'Connect Ronin Wallet';
+      btnConnect.textContent = 'Use Ronin Wallet';
     }
   }
 
@@ -528,7 +680,7 @@
         showApiKey(status.apiKey, status.expiresAt);
       } else if (status.status === 'expired') {
         stopPolling();
-        showError('Payment Expired', 'The payment session timed out. Please try again.');
+        showError('Payment Expired', 'The payment session timed out. Please try again.', 'plans');
       }
       // else pending — keep polling
     } catch (_) {
@@ -538,14 +690,31 @@
 
   /* ── Result screens ─────────────────────────────────────────── */
   function showApiKey(apiKey, expiresAt) {
-    showOnly(stepApikey);
-    apiKeyDisplay.textContent = apiKey;
-    if (expiresAt) {
-      keyExpiry.textContent = 'Expires: ' + fmtExpiry(expiresAt);
-    }
+    showAccessValue({
+      title: 'Paid Access Ready',
+      label: 'API Key — keep this secret',
+      value: apiKey,
+      help: 'Use this value as X-API-Key on protected routes like /api/leaderboard and /api/predictions/:userId.',
+      expiresAt,
+      mode: 'payment'
+    });
   }
 
-  function showError(title, sub) {
+  function showDiscordAccess(authStatus) {
+    const token = getStoredToken();
+    const payload = decodeJwtPayload(token);
+    showAccessValue({
+      title: 'Discord Access Granted',
+      label: 'Discord Access Token — keep this secret',
+      value: token || '',
+      help: authStatus.user.username + ' is allowlisted. Use this value as Authorization: Bearer <token> on protected routes.',
+      expiresAt: payload && payload.exp ? payload.exp * 1000 : null,
+      mode: 'discord'
+    });
+  }
+
+  function showError(title, sub, nextTarget) {
+    retryTarget = nextTarget || 'access';
     errorTitle.textContent = title;
     errorSub.textContent = sub;
     showOnly(stepError);
@@ -567,32 +736,54 @@
 
   /* ── Retry ──────────────────────────────────────────────────── */
   btnRetry.addEventListener('click', () => {
-    currentSessionId = null;
-    selectedPlan = null;
-    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
-    btnPay.disabled = true;
-    btnPay.textContent = 'Pay with Ronin Wallet';
-    showOnly(stepPlans);
+    if (retryTarget === 'plans') {
+      currentSessionId = null;
+      selectedPlan = null;
+      document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+      btnPay.disabled = true;
+      btnPay.textContent = 'Pay with Ronin Wallet';
+      showOnly(stepPlans);
+      return;
+    }
+
+    showOnly(stepConnect);
   });
 
   btnStart.addEventListener('click', () => {
-    // In a real app this would navigate to the dashboard
-    alert('API key ready! In production this navigates to the tracker dashboard.');
+    if (accessMode === 'discord') {
+      logoutDiscord();
+    }
   });
 
   /* ── Event listeners ────────────────────────────────────────── */
+  btnDiscord.addEventListener('click', loginWithDiscord);
   btnConnect.addEventListener('click', connectWallet);
   btnPay.addEventListener('click', startPayment);
 
-  /* ── Remove loading overlay once libs are ready ─────────────── */
-  function removeOverlay() {
-    if (window.TantoConnect && window.ethers) {
-      loadingOverlay.remove();
-    } else {
-      setTimeout(removeOverlay, 200);
+  /* ── Initial access routing ─────────────────────────────────── */
+  async function init() {
+    const redirectState = consumeRedirectState();
+
+    if (redirectState.error) {
+      const authError = describeAuthError(redirectState.error);
+      showError(authError.title, authError.message, 'access');
+      return;
     }
+
+    try {
+      const authStatus = await getDiscordAuthStatus();
+      if (authStatus && authStatus.authenticated && authStatus.authorized) {
+        showDiscordAccess(authStatus);
+        return;
+      }
+    } catch (_) {
+      clearStoredToken();
+    }
+
+    showOnly(stepConnect);
   }
-  removeOverlay();
+
+  init().finally(() => loadingOverlay.remove());
 
 })();
 </script>

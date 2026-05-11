@@ -16,19 +16,33 @@ export interface AuthenticatedRequest extends Request {
 }
 
 const DEFAULT_DEV_JWT_SECRET = 'axie-dev-jwt-secret';
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  process.env.SESSION_SECRET ||
-  (process.env.NODE_ENV === 'production' ? '' : DEFAULT_DEV_JWT_SECRET);
+
+function cleanEnvValue(value?: string): string {
+  return (value || '').trim();
+}
+
+function getJwtSecret(): string | null {
+  return (
+    cleanEnvValue(process.env.JWT_SECRET) ||
+    cleanEnvValue(process.env.SESSION_SECRET) ||
+    (process.env.NODE_ENV === 'production' ? '' : DEFAULT_DEV_JWT_SECRET) ||
+    null
+  );
+}
+
+function requireJwtSecret(): string {
+  const secret = getJwtSecret();
+  if (!secret) {
+    throw new Error('JWT_SECRET or SESSION_SECRET must be configured before issuing tokens');
+  }
+  return secret;
+}
+
 const JWT_EXPIRES_IN =
   (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
 
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET or SESSION_SECRET must be configured before the server starts');
-}
-
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, requireJwtSecret(), {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'axie-mvp-backend'
   });
@@ -36,7 +50,12 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const secret = getJwtSecret();
+    if (!secret) {
+      return null;
+    }
+
+    const decoded = jwt.verify(token, secret) as JWTPayload;
     return {
       ...decoded,
       isAuthorized: decoded.isAuthorized && isDiscordUserAllowed(decoded.id)

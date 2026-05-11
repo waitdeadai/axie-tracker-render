@@ -35,6 +35,10 @@ function parseCsvEnv(value?: string): string[] {
     .filter(Boolean);
 }
 
+function cleanEnvValue(value?: string): string {
+  return (value || '').trim();
+}
+
 const configuredAllowedDiscordIds = parseCsvEnv(process.env.ALLOWED_DISCORD_IDS);
 const allowedDiscordIds =
   configuredAllowedDiscordIds.length > 0
@@ -42,15 +46,16 @@ const allowedDiscordIds =
     : DEFAULT_ALLOWED_DISCORD_IDS;
 
 const sessionSecret =
-  process.env.SESSION_SECRET ||
+  cleanEnvValue(process.env.SESSION_SECRET) ||
+  cleanEnvValue(process.env.JWT_SECRET) ||
   (isProduction ? '' : DEFAULT_DEV_SESSION_SECRET);
 
 export const authConfig: AuthConfig = {
   discord: {
-    clientID: process.env.DISCORD_CLIENT_ID || '',
-    clientSecret: process.env.DISCORD_CLIENT_SECRET || '',
+    clientID: cleanEnvValue(process.env.DISCORD_CLIENT_ID),
+    clientSecret: cleanEnvValue(process.env.DISCORD_CLIENT_SECRET),
     callbackURL:
-      process.env.DISCORD_CALLBACK_URL ||
+      cleanEnvValue(process.env.DISCORD_CALLBACK_URL) ||
       'http://localhost:4000/api/auth/discord/callback',
     scope: ['identify', 'email']
   },
@@ -71,35 +76,40 @@ export function isDiscordUserAllowed(discordId: string): boolean {
   return authConfig.allowedDiscordIds.includes(discordId);
 }
 
+export function hasDiscordAuthEnabled(): boolean {
+  return Boolean(
+    authConfig.discord.clientID &&
+      authConfig.discord.clientSecret &&
+      authConfig.discord.callbackURL &&
+      authConfig.session.secret
+  );
+}
+
+export function getAuthDisableReason(): string {
+  if (!authConfig.discord.clientID) return 'missing DISCORD_CLIENT_ID';
+  if (!authConfig.discord.clientSecret) return 'missing DISCORD_CLIENT_SECRET';
+  if (!authConfig.discord.callbackURL) return 'missing DISCORD_CALLBACK_URL';
+  if (!authConfig.session.secret) return 'missing SESSION_SECRET or JWT_SECRET';
+  return 'unknown reason';
+}
+
 export function validateAuthConfig(): void {
   const { discord, allowedDiscordIds } = authConfig;
 
   if (!discord.clientID) {
-    const message = 'Missing DISCORD_CLIENT_ID environment variable';
-    if (isProduction) {
-      throw new Error(message);
-    }
-    console.warn(`Warning: ${message}`);
+    throw new Error('Missing DISCORD_CLIENT_ID environment variable');
   }
 
   if (!discord.clientSecret) {
-    const message = 'Missing DISCORD_CLIENT_SECRET environment variable';
-    if (isProduction) {
-      throw new Error(message);
-    }
-    console.warn(`Warning: ${message}`);
+    throw new Error('Missing DISCORD_CLIENT_SECRET environment variable');
   }
 
   if (!discord.callbackURL) {
-    const message = 'Missing DISCORD_CALLBACK_URL environment variable';
-    if (isProduction) {
-      throw new Error(message);
-    }
-    console.warn(`Warning: ${message}`);
+    throw new Error('Missing DISCORD_CALLBACK_URL environment variable');
   }
 
   if (!authConfig.session.secret) {
-    throw new Error('Missing SESSION_SECRET environment variable');
+    throw new Error('Missing SESSION_SECRET or JWT_SECRET environment variable');
   }
 
   if (isProduction && authConfig.session.secret === DEFAULT_DEV_SESSION_SECRET) {
