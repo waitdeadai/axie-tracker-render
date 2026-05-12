@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getUserRankedFighters } from "../services/originsBattleLogs";
-import { buildAxieUrl } from "../shared/axieImages";
+import { buildAxieCdnUrl, buildAxieUrl } from "../shared/axieImages";
 import { config } from "../config";
 import { getVerificationStats } from "../services/axieVerification";
 import { skyMavisService } from "../services/skyMavis";
@@ -20,8 +20,9 @@ axiesRouter.get("/by-user/:userId", async (req, res) => {
     
     const list = fighters.map(f => {
       const out:any = { axieID: f.axieID };
-      if (f.genes_metamorph) out.primary = buildAxieUrl(f.genes_metamorph, true, SECRET);
-      if (f.genes)          out.fallback = buildAxieUrl(f.genes, false, SECRET);
+      out.primary = buildAxieCdnUrl(f.axieID);
+      if (f.genes_metamorph) out.fallback = buildAxieUrl(f.genes_metamorph, true, SECRET);
+      else if (f.genes)      out.fallback = buildAxieUrl(f.genes, false, SECRET);
       return out;
     });
     
@@ -124,8 +125,9 @@ axiesRouter.get("/user-data/:userId", async (req, res) => {
     const fighters = await getUserRankedFighters(userId);
     const axiesList = fighters.map(f => {
       const out:any = { axieID: f.axieID };
-      if (f.genes_metamorph) out.primary = buildAxieUrl(f.genes_metamorph, true, SECRET);
-      if (f.genes)          out.fallback = buildAxieUrl(f.genes, false, SECRET);
+      out.primary = buildAxieCdnUrl(f.axieID);
+      if (f.genes_metamorph) out.fallback = buildAxieUrl(f.genes_metamorph, true, SECRET);
+      else if (f.genes)      out.fallback = buildAxieUrl(f.genes, false, SECRET);
       return out;
     });
     

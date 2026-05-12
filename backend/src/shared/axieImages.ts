@@ -1,12 +1,17 @@
 import { crc32 } from "./axieCrc";
 
 const AXIE_STATIC = "https://static.axie.top/axie/";
+const AXIE_CDN = "https://axiecdn.axieinfinity.com/axies";
 const GENES_HEX = /^0x[0-9a-fA-F]+$/;
 
 export function buildAxieUrl(genes: string, morph: boolean, secretKey: string) {
   if (!GENES_HEX.test(genes)) throw new Error("genes inválidos (se espera hex con 0x)");
   const secret = crc32(secretKey + genes) >>> 0;
   return `${AXIE_STATIC}?g=${genes}${morph ? "&m=true" : ""}&s=${secret}`;
+}
+
+export function buildAxieCdnUrl(axieID: number | string) {
+  return `${AXIE_CDN}/${axieID}/axie/axie-full-transparent.png`;
 }
 
 // Toma el battle log más reciente con gameMode=ranked y devuelve fighters del usuario específico
