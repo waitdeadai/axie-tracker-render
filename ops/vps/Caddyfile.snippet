@@ -1,0 +1,8 @@
+# Append to the VPS Caddyfile (the same Caddy that fronts waitdead-crm + waitdead-v2).
+# Caddy auto-provisions TLS. Pick the real subdomain and point its DNS A record
+# at the VPS IP first.
+
+axie.waitdead.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:4010
+}

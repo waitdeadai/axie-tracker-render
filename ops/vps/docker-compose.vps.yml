@@ -1,0 +1,39 @@
+# Axie tracker — Contabo VPS deployment (replaces the Render free-tier deploy).
+# Single container: the backend Dockerfile builds the frontend too and serves
+# both API (/api/*) and the static SPA on port 4000.
+#
+# Root-cause fix vs Render: DATA_DIR=/data is backed by the named volume below,
+# so payments.db (client API keys + expiries) PERSISTS across restarts/redeploys.
+#
+# Usage (on the VPS, from the repo root):
+#   cp ops/vps/.env.vps.example ops/vps/.env.vps   # then fill secrets
+#   docker compose -f ops/vps/docker-compose.vps.yml up -d --build
+#   docker compose -f ops/vps/docker-compose.vps.yml logs -f
+
+services:
+  axie:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    container_name: axie_backend
+    restart: unless-stopped
+    env_file:
+      - .env.vps
+    environment:
+      DATA_DIR: /data
+      NODE_ENV: production
+      PORT: "4000"
+    volumes:
+      - axie_data:/data
+    ports:
+      # bound to localhost only; Caddy terminates TLS and reverse-proxies in
+      - "127.0.0.1:4010:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  axie_data:
