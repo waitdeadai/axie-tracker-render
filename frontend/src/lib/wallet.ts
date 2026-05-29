@@ -1,4 +1,4 @@
-import { RoninWalletConnector, checkRoninInstalled } from '@sky-mavis/tanto-connect';
+import { RoninWalletConnector } from '@sky-mavis/tanto-connect';
 import { BrowserProvider, Contract, getAddress, type Eip1193Provider } from 'ethers';
 
 // Ronin mainnet. The backend SIWE verifier rejects any other chainId.
@@ -19,7 +19,9 @@ function getConnector(): RoninWalletConnector {
 }
 
 export function isRoninWalletInstalled(): boolean {
-  return checkRoninInstalled();
+  // tanto-connect 0.0.22 has no install-check helper; the Ronin Wallet extension
+  // injects an EIP-1193 provider at window.ronin (EIP-6963 also available).
+  return typeof window !== 'undefined' && Boolean((window as { ronin?: unknown }).ronin);
 }
 
 export interface ConnectedWallet {

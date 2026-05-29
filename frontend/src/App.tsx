@@ -109,7 +109,6 @@ function App() {
         rps={rps}
         etaSeconds={etaSeconds}
         playerCount={sortedPlayers.length}
-        user={null}
         sortBy={sortBy}
         onSortChange={setSortBy}
         showTop100Only={showTop100Only}
