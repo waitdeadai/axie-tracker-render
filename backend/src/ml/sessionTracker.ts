@@ -5,7 +5,8 @@ import { ActivePlayer } from '../core/types';
 
 interface SessionEvent {
   userId: string;
-  timestamp: number;
+  sessionStart: number; // TRUE session start — set once, never overwritten
+  timestamp: number;    // last-activity time (rolling) — used for gap detection
   vstar: number;
   vstar_start: number; // Captured once at session start, never overwritten
   action: 'start' | 'continue' | 'end';
@@ -78,8 +79,7 @@ export class LocalSessionTracker {
     console.log('📊 SessionTracker database initialized');
   }
 
-  public processPlayerActivity(player: ActivePlayer): void {
-    const now = Date.now();
+  public processPlayerActivity(player: ActivePlayer, now: number = Date.now()): void {
     const lastActivity = this.activeSessions.get(player.userId);
 
     if (!lastActivity) {
@@ -90,8 +90,9 @@ export class LocalSessionTracker {
       const timeSinceLastActivity = now - lastActivity.timestamp;
 
       if (timeSinceLastActivity > this.SESSION_TIMEOUT) {
-        // Gap muy largo = nueva sesión
-        this.endSession(lastActivity, now - this.SESSION_TIMEOUT);
+        // Gap muy largo = nueva sesión. The prior session really ended at its
+        // LAST game (lastActivity.timestamp), not "now minus timeout".
+        this.endSession(lastActivity, lastActivity.timestamp);
         this.startSession(player, now);
       } else {
         // Continuar sesión existente
@@ -103,7 +104,8 @@ export class LocalSessionTracker {
   private startSession(player: ActivePlayer, timestamp: number): void {
     const sessionEvent: SessionEvent = {
       userId: player.userId,
-      timestamp,
+      sessionStart: timestamp, // TRUE start, never overwritten on continue
+      timestamp,               // rolling last-activity
       vstar: player.vstar,
       vstar_start: player.vstar, // Capture initial vstar
       action: 'start',
@@ -135,7 +137,9 @@ export class LocalSessionTracker {
 
   private endSession(sessionEvent: SessionEvent, endTime?: number): void {
     const actualEndTime = endTime || Date.now();
-    const duration = actualEndTime - sessionEvent.timestamp;
+    // Duration is measured from the TRUE session start to the end (last game),
+    // not from the last activity — so a multi-game session is not under-counted.
+    const duration = actualEndTime - sessionEvent.sessionStart;
 
     // Solo guardar sesiones que duran al menos el mínimo
     if (duration < this.MIN_SESSION_DURATION) {
@@ -147,15 +151,15 @@ export class LocalSessionTracker {
     const sessionData: SessionData = {
       user_id: sessionEvent.userId,
       player_name: sessionEvent.playerName,
-      session_start: sessionEvent.timestamp,
+      session_start: sessionEvent.sessionStart,
       session_end: actualEndTime,
       duration_minutes: Math.floor(duration / 60000),
       games_played: sessionEvent.gameCount,
       vstar_start: sessionEvent.vstar_start, // Original vstar at session start
       vstar_end: sessionEvent.vstar, // Updated continuously via continueSession
       vstar_change: sessionEvent.vstar - sessionEvent.vstar_start, // end - start
-      hour_of_day: new Date(sessionEvent.timestamp).getHours(),
-      day_of_week: new Date(sessionEvent.timestamp).getDay(),
+      hour_of_day: new Date(sessionEvent.sessionStart).getHours(),
+      day_of_week: new Date(sessionEvent.sessionStart).getDay(),
       top_rank: sessionEvent.topRank
     };
 
@@ -204,7 +208,8 @@ export class LocalSessionTracker {
       const timeSinceLastActivity = now - sessionEvent.timestamp;
       
       if (timeSinceLastActivity > this.SESSION_TIMEOUT) {
-        this.endSession(sessionEvent, sessionEvent.timestamp + this.SESSION_TIMEOUT);
+        // Session ended at its last game, not timeout-later.
+        this.endSession(sessionEvent, sessionEvent.timestamp);
         cleanedCount++;
       }
     }

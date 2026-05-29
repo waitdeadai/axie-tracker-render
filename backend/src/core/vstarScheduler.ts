@@ -191,7 +191,20 @@ export class VStarScheduler {
 
     // Update state with active players
     if (activePlayers.length > 0) {
-      activePlayers.forEach(player => state.upsertActive(player));
+      activePlayers.forEach(player => {
+        state.upsertActive(player);
+        // Feed the ML session tracker so sessions.db accumulates (powers the
+        // "next likely play time" prediction). Each VStar change is detected once
+        // (top200/top300 share leaderboardMap), so this is one call per game.
+        // Non-blocking: ML must never break the live radar.
+        if (this.sessionTracker) {
+          try {
+            this.sessionTracker.processPlayerActivity(player);
+          } catch (err: any) {
+            console.log('⚠️ session tracker error (non-fatal):', err?.message);
+          }
+        }
+      });
       console.log(`🎯 Found ${activePlayers.length} active players from ${source}`);
     }
 
