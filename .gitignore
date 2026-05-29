@@ -13,6 +13,10 @@ build/
 .env.local
 .env.production
 
+# VPS operator secret files (never commit Sky Mavis keys / API_KEY)
+ops/vps/runtime.cfg
+ops/vps/.env*
+
 # OS generated files
 .DS_Store
 .DS_Store?

@@ -1,0 +1,30 @@
+# Docker build context is the repo root (see ops/vps/docker-compose.vps.yml).
+# Keep the context lean and force the in-image installs/builds to be
+# authoritative — never let stale host artifacts shadow a clean build.
+
+# Dependency trees (the image runs its own pnpm/npm install)
+**/node_modules
+
+# Build outputs (the image runs its own tsc / vite build)
+**/dist
+**/build
+**/coverage
+
+# Databases (persisted in the named volume, never baked into the image)
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets / operator-created env files
+ops/vps/runtime.cfg
+ops/vps/.env*
+.env
+.env.*
+
+# VCS + logs + editor cruft
+.git
+.gitignore
+*.log
+.DS_Store
+.vscode
+.idea

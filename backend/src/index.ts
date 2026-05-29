@@ -13,7 +13,7 @@ const app = express();
 const DEFAULT_DEV_ORIGIN = 'http://localhost:5174';
 const DEV_HOSTS = ['127.0.0.1', 'localhost'];
 
-// Render terminates TLS upstream, so secure session cookies need proxy trust.
+// Caddy terminates TLS upstream on the VPS, so secure cookies need proxy trust.
 app.set('trust proxy', 1);
 
 function getAllowedOrigins(): string[] {
@@ -33,7 +33,6 @@ function getAllowedOrigins(): string[] {
 
   addOrigin(process.env.FRONTEND_URL);
   addOrigin(process.env.BACKEND_URL);
-  addOrigin(process.env.DISCORD_CALLBACK_URL);
 
   if (process.env.NODE_ENV !== 'production') {
     origins.add(DEFAULT_DEV_ORIGIN);

@@ -41,14 +41,19 @@ Docker + Docker Compose plugin, Caddy, DNS A record for `axie.waitdead.com` → 
 git clone https://github.com/waitdeadai/axie-tracker-render.git /opt/axie
 cd /opt/axie
 
-# 2. env: copy the template and fill the REPLACE_ME values (Sky Mavis keys, API_KEY,
-#    AXIE_TOP_SECRET_KEY, the real CORS_ORIGIN/FRONTEND_URL). Leave DISCORD_* unset.
-cp ops/vps/env.vps.example.txt ops/vps/.env.vps
-nano ops/vps/.env.vps
+# 2. env: copy the template to the filename compose loads (env_file: runtime.cfg)
+#    and fill the REPLACE_ME values (Sky Mavis keys, API_KEY, AXIE_TOP_SECRET_KEY,
+#    the real CORS_ORIGIN/FRONTEND_URL). Leave DISCORD_* unset.
+cp ops/vps/env.vps.example.txt ops/vps/runtime.cfg
+nano ops/vps/runtime.cfg
 
 # 3. build + run (single container, persistent /data volume)
+#    Prefer the clean-source deploy script — it mirrors the tree to origin with
+#    delete semantics first, so git-deleted files can never linger and break tsc:
+ops/vps/deploy.sh
+#    (or, equivalently, by hand:)
 docker compose -f ops/vps/docker-compose.vps.yml up -d --build
-docker compose -f ops/vps/docker-compose.vps.yml logs -f   # expect "Discord auth disabled", "Server running on port 4000"
+docker compose -f ops/vps/docker-compose.vps.yml logs -f   # expect "Server running on port 4000"
 
 # 4. wire Caddy (TLS auto)
 cat ops/vps/Caddyfile.snippet >> /etc/caddy/Caddyfile   # or paste into your Caddyfile

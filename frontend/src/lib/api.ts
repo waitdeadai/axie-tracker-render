@@ -324,32 +324,11 @@ export const api = {
     }
 
     return response.json();
-  },
-
-  async getHealth(): Promise<{
-    status: string;
-    timestamp: string;
-    config: {
-      activeWindow: number;
-      refreshInterval: number;
-      imagesTtl: number;
-      apiKeys: number;
-    };
-  }> {
-    const response = await fetch(`${API_BASE}/health`);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
   }
 };
 
-export const getActivePlayers = api.getActivePlayers;
 export const getPredictions = api.getPredictions;
 export const getSessionSummary = api.getSessionSummary;
-export const getHealth = api.getHealth;
 export const getNonce = api.getNonce;
 export const verifySiwe = api.verifySiwe;
 export const getAccessStatus = api.getAccessStatus;
