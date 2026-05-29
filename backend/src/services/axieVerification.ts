@@ -1,6 +1,4 @@
 import { getUserRankedFighters } from "./originsBattleLogs";
-import { buildAxieUrl } from "../shared/axieImages";
-import { config } from "../config";
 
 // Cache de verificación periódica
 type VerificationCache = {
@@ -11,7 +9,6 @@ type VerificationCache = {
 
 const VERIFICATION_CACHE = new Map<number, VerificationCache>();
 const VERIFICATION_INTERVAL = 60 * 60 * 1000; // 1 hora
-const SECRET = config.axieTopSecretKey;
 
 // Hash simple para detectar cambios de genes
 function getGenesHash(genes: string, genes_metamorph?: string): string {
