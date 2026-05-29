@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import { api } from './lib/api';
 import { Header } from './components/Header';
 import { PlayerCard } from './components/PlayerCard';
+import { RivalRadar } from './components/RivalRadar';
 
 export type SortOption = 'rank' | 'sniper';
 
@@ -118,6 +119,7 @@ function App() {
       />
       
       <main className="max-w-7xl mx-auto p-4 pt-20">
+        <RivalRadar />
         {sortedPlayers.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 text-6xl mb-4">🎮</div>

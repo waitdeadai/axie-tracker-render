@@ -158,6 +158,16 @@ async function readError(response: Response): Promise<string> {
   }
 }
 
+export interface RivalStatus {
+  playerUserId: string;
+  playerName: string;
+  online: boolean;
+  topRank: number | null;
+  vstar: number | null;
+  lastBattleAt: number | null;
+  won: boolean | null;
+}
+
 export const api = {
   async getActivePlayers(): Promise<ActiveResponse> {
     const response = await fetch(`${API_BASE}/active-players`, {
@@ -169,6 +179,43 @@ export const api = {
     }
 
     return response.json();
+  },
+
+  // --- Rival watchlist (paid "Live Rival Radar"). Session-cookie bound, so
+  // credentials:'include' is mandatory alongside the JWT auth headers. ---
+  async getWatchlist(): Promise<RivalStatus[]> {
+    const response = await fetch(`${API_BASE}/watchlist`, {
+      credentials: 'include',
+      headers: TokenManager.getAuthHeaders()
+    });
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
+    const data = (await response.json()) as { rivals: RivalStatus[] };
+    return data.rivals;
+  },
+
+  async addWatch(playerUserId: string, playerName: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/watchlist`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: TokenManager.getAuthHeaders(),
+      body: JSON.stringify({ playerUserId, playerName })
+    });
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
+  },
+
+  async removeWatch(playerUserId: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/watchlist/${encodeURIComponent(playerUserId)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: TokenManager.getAuthHeaders()
+    });
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
   },
 
   // SIWE step 1: ask the server for a single-use nonce bound to the session

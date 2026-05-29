@@ -2,6 +2,7 @@ import { ActivePlayer } from '../lib/api';
 import { formatGameTime, formatDetailedTime } from '../utils/time';
 import { MLPredictionHover } from './MLPredictionHover';
 import { useAxieImages } from '../hooks/useAxieImages';
+import { useWatchlist } from '../hooks/useWatchlist';
 import { AxieImgUrl } from './AxieImgUrl';
 
 interface PlayerCardProps {
@@ -16,6 +17,10 @@ export function PlayerCard({ player }: PlayerCardProps) {
   // Obtener imágenes de axies usando el hook
   const { fighters: imgs } = useAxieImages(player.userId, true);
   const visibleAxies = imgs && imgs.length > 0 ? imgs.slice(0, 3) : null;
+
+  // Rival pin (paid feature) — shared watchlist store.
+  const { isWatching, toggle, hasAccess } = useWatchlist();
+  const pinned = isWatching(player.userId);
 
   return (
     <div className={cardClasses}>
@@ -39,18 +44,21 @@ export function PlayerCard({ player }: PlayerCardProps) {
         <span className="badge badge-vstar flex-shrink-0">
           ⭐ {player.vstar}
         </span>
+        {hasAccess && (
+          <button
+            onClick={() => toggle(player.userId, player.name)}
+            className={`ml-auto flex-shrink-0 text-lg leading-none ${pinned ? 'text-cyan-400' : 'text-gray-500 hover:text-cyan-300'}`}
+            title={pinned ? 'Unpin rival' : 'Pin rival to your radar'}
+            aria-label={pinned ? 'Unpin rival' : 'Pin rival'}
+          >
+            {pinned ? '📌' : '☆'}
+          </button>
+        )}
       </div>
 
       {/* Nombre del jugador */}
       <h3 className="font-semibold text-white mb-1 truncate" title={player.name}>
-        <a 
-          href={`https://axie.top/profile/${player.userId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-blue-400 transition-colors duration-200"
-        >
-          {player.name}
-        </a>
+        {player.name}
       </h3>
 
       {/* Badge de estado activo */}
