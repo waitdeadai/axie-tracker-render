@@ -4,6 +4,19 @@ import path from 'path';
 import { getAddress } from 'ethers';
 import { PlanId } from './plans';
 
+// Single source of truth for watchlist tiering config. Read lazily from env
+// (no dependency on config.ts's eager required-env load, which throws on a
+// missing API_KEY). BOTH the displayed status (getStatus, below) and the
+// enforced route guard (entitlements.requireWatchlistWallet) import this, so the
+// gate the frontend sees can never drift from the gate the backend enforces.
+// Far-future freeUntil => behavior-neutral (any access-holder keeps the watchlist).
+export function getWatchlistConfig(): { deployEnabled: boolean; freeUntil: number } {
+  const deployEnabled = (process.env.WATCHLIST_DEPLOY_ENABLED ?? 'true') !== 'false';
+  const raw = Number(process.env.WATCHLIST_FREE_UNTIL ?? 32503680000000);
+  const freeUntil = Number.isFinite(raw) ? raw : 32503680000000;
+  return { deployEnabled, freeUntil };
+}
+
 let db: Database.Database | null = null;
 
 function getDbPath(): string {
@@ -38,12 +51,23 @@ export interface WhitelistEntry {
   until: number;
 }
 
+export interface PremiumGrant {
+  wallet: string;
+  until: number | null;
+  reason: string;
+  created_at: number;
+}
+
 export interface AccessStatus {
   address: string;
   hasAccess: boolean;
   plan: PlanId | null;
   expiresAt: number | null;
   whitelisted: boolean;
+  // Watchlist + alerts tiering (additive). watchlistAccess gates the feature;
+  // watchlistFree flags it's currently included free (launch window, no premium).
+  watchlistAccess: boolean;
+  watchlistFree: boolean;
 }
 
 export interface TxInfo {
@@ -84,6 +108,13 @@ export function initAccessDb(): Database.Database {
       player_name TEXT NOT NULL DEFAULT '',
       created_at INTEGER NOT NULL,
       PRIMARY KEY (wallet, player_user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS premium_grants (
+      wallet TEXT PRIMARY KEY,
+      until INTEGER,
+      reason TEXT,
+      created_at INTEGER
     );
 
     CREATE INDEX IF NOT EXISTS idx_subscriptions_expires ON subscriptions(expires_at);
@@ -131,6 +162,44 @@ export function hasActiveAccess(wallet: string, now: number = Date.now()): boole
     return true;
   }
   return isWhitelisted(wallet, now);
+}
+
+export function getPremiumGrant(wallet: string): PremiumGrant | undefined {
+  return getDb()
+    .prepare('SELECT * FROM premium_grants WHERE wallet = ?')
+    .get(normalizeWallet(wallet)) as PremiumGrant | undefined;
+}
+
+// Premium = an unexpired premium_grants row (until null means no expiry), OR a
+// whitelist reason that reads as premium/founder. Used by the watchlist add-on
+// gate to keep a wallet entitled even after the free launch window closes.
+export function hasPremium(wallet: string, now: number = Date.now()): boolean {
+  const grant = getPremiumGrant(wallet);
+  if (grant && (grant.until == null || grant.until > now)) {
+    return true;
+  }
+  const wl = getWhitelistEntry(wallet);
+  return Boolean(wl && wl.until > now && /premium|founder/i.test(wl.reason));
+}
+
+// Records/refreshes a premium grant. `until` null = no expiry.
+export function grantPremium(
+  wallet: string,
+  until: number | null,
+  reason: string,
+  now: number = Date.now()
+): PremiumGrant {
+  const normalized = normalizeWallet(wallet);
+  getDb()
+    .prepare(
+      `INSERT INTO premium_grants (wallet, until, reason, created_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(wallet) DO UPDATE SET
+         until = excluded.until,
+         reason = excluded.reason`
+    )
+    .run(normalized, until, reason, now);
+  return { wallet: normalized, until, reason, created_at: now };
 }
 
 // Grants/extends a time-boxed subscription. Extends from whichever is later:
@@ -223,12 +292,24 @@ export function getStatus(wallet: string, now: number = Date.now()): AccessStatu
     expiresAt = sub.expires_at;
   }
 
+  const hasAccess = subActive || whitelisted;
+
+  // Watchlist tiering. With the far-future default freeUntil this stays
+  // behavior-neutral: any access-holder gets watchlistAccess true (free).
+  const { deployEnabled, freeUntil } = getWatchlistConfig();
+  const premium = hasPremium(normalized, now);
+  const withinFreeWindow = now < freeUntil;
+  const watchlistAccess = deployEnabled && hasAccess && (withinFreeWindow || premium);
+  const watchlistFree = withinFreeWindow && !premium;
+
   return {
     address: normalized,
-    hasAccess: subActive || whitelisted,
+    hasAccess,
     plan,
     expiresAt,
-    whitelisted
+    whitelisted,
+    watchlistAccess,
+    watchlistFree
   };
 }
 

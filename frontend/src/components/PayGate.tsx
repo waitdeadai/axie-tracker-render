@@ -272,9 +272,9 @@ export function PayGate() {
             pain="Digging through a cluttered leaderboard wastes the grind minutes that decide your rank."
           />
           <ValueCard
-            title="Rival watchlist + alerts"
-            benefit="Add rivals; get pinged the moment they come online or start moving."
-            pain="You can't watch the whole Top 2000 by hand — you miss it when players above you go active."
+            title="Rival Watchlist + Alerts — Premium"
+            benefit="Pin rivals, get pinged the second they queue. Included free for launch pass holders."
+            pain="Becomes a paid add-on after launch — hold a pass now and keep it free."
           />
         </section>
 

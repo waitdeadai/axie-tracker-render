@@ -65,6 +65,10 @@ export interface AccessStatus {
   plan: PlanId | null;
   expiresAt: number | null;
   whitelisted: boolean;
+  // Watchlist + alerts tiering (additive passthrough from the backend).
+  // watchlistAccess gates the feature; watchlistFree means it's currently free.
+  watchlistAccess: boolean;
+  watchlistFree: boolean;
 }
 
 export interface VerifyResponse extends AccessStatus {

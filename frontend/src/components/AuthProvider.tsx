@@ -21,6 +21,9 @@ interface AuthContextType {
   address: string | null;
   accessStatus: AccessStatus | null;
   hasAccess: boolean;
+  // Watchlist + alerts tiering. Default false when there's no access status.
+  watchlistAccess: boolean;
+  watchlistFree: boolean;
   isLoading: boolean;
   isBusy: boolean;
   error: string | null;
@@ -140,7 +143,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         hasAccess: result.hasAccess,
         plan: result.plan,
         expiresAt: result.expiresAt,
-        whitelisted: result.whitelisted
+        whitelisted: result.whitelisted,
+        watchlistAccess: result.watchlistAccess,
+        watchlistFree: result.watchlistFree
       });
       setAddress(result.address);
     } catch (err) {
@@ -174,6 +179,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         address,
         accessStatus,
         hasAccess: accessStatus?.hasAccess ?? false,
+        watchlistAccess: accessStatus?.watchlistAccess ?? false,
+        watchlistFree: accessStatus?.watchlistFree ?? false,
         isLoading,
         isBusy,
         error,

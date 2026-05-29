@@ -65,9 +65,16 @@ async function refresh(): Promise<void> {
   }
 }
 
-export function useWatchlist(opts: { poll?: boolean } = {}) {
-  const { hasAccess } = useAuth();
+export function useWatchlist(opts: { poll?: boolean; enabled?: boolean } = {}) {
+  // Gate on watchlistAccess (the add-on entitlement), NOT base hasAccess. Under
+  // the behavior-neutral default these are equal for every access-holder, so a
+  // wallet that isn't entitled never polls /watchlist (avoids 402 spam).
+  const { watchlistAccess } = useAuth();
   const [, force] = useState(0);
+
+  // Explicit enabled guard defaults to true; callers can pass enabled:false to
+  // suppress polling even when entitled.
+  const enabled = opts.enabled ?? true;
 
   useEffect(() => {
     const l = () => force((n) => n + 1);
@@ -78,11 +85,11 @@ export function useWatchlist(opts: { poll?: boolean } = {}) {
   }, []);
 
   useEffect(() => {
-    if (!hasAccess || !opts.poll) return;
+    if (!watchlistAccess || !enabled || !opts.poll) return;
     refresh();
     const id = setInterval(refresh, 10000);
     return () => clearInterval(id);
-  }, [hasAccess, opts.poll]);
+  }, [watchlistAccess, enabled, opts.poll]);
 
   const toggle = useCallback(async (userId: string, name: string) => {
     if (cache.some((r) => r.playerUserId === userId)) {
@@ -97,7 +104,10 @@ export function useWatchlist(opts: { poll?: boolean } = {}) {
     rivals: cache,
     isWatching: (id: string) => cache.some((r) => r.playerUserId === id),
     toggle,
-    hasAccess,
+    // `hasAccess` here means "entitled to the watchlist add-on". Kept under this
+    // name so existing consumers (PlayerCard pin button) stay correctly gated.
+    hasAccess: watchlistAccess,
+    watchlistAccess,
     alertsEnabled: alertsEnabled(),
     enableAlerts: enableRivalAlerts,
   };

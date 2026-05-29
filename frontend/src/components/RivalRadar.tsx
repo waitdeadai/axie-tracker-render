@@ -1,11 +1,18 @@
+import { useAuth } from './AuthProvider';
 import { useWatchlist } from '../hooks/useWatchlist';
 
 // The paid hero: a live panel of your pinned rivals with "grinding now" status,
-// driven by the 1-second VStar radar (backend core/state). Hidden until the wallet
-// has active access.
+// driven by the 1-second VStar radar (backend core/state). Gated on the watchlist
+// add-on entitlement (watchlistAccess), not base access — so the poller never
+// runs (and never 402-spams) for a wallet that isn't entitled.
 export function RivalRadar() {
-  const { rivals, hasAccess, toggle, alertsEnabled, enableAlerts } = useWatchlist({ poll: true });
-  if (!hasAccess) return null;
+  const { watchlistAccess, watchlistFree } = useAuth();
+  // Only poll when entitled — keeps /watchlist quiet for non-entitled wallets.
+  const { rivals, toggle, alertsEnabled, enableAlerts } = useWatchlist({
+    poll: true,
+    enabled: watchlistAccess
+  });
+  if (!watchlistAccess) return null;
 
   const onlineCount = rivals.filter((r) => r.online).length;
 
@@ -14,6 +21,14 @@ export function RivalRadar() {
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-white">
           Rival Radar <span className="text-cyan-400">({onlineCount} grinding now)</span>
+          {watchlistFree && (
+            <span
+              className="ml-2 align-middle text-[10px] uppercase tracking-wide rounded-full border border-amber-500/50 bg-amber-900/30 text-amber-300 px-2 py-0.5"
+              title="Included free for launch pass holders — becomes a paid Premium add-on after launch."
+            >
+              Founder · included free
+            </span>
+          )}
         </h2>
         <div className="flex items-center gap-3">
           <button

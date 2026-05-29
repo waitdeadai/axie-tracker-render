@@ -70,6 +70,19 @@ export const config = {
     adminToken: getEnvVar('ADMIN_TOKEN', '')
   },
 
+  // Watchlist + alerts tiering. SHIPS BEHAVIOR-NEUTRAL: with the far-future
+  // default freeUntil, every current access-holder keeps the watchlist exactly
+  // as today. Becomes a paid Premium add-on only once freeUntil is set in the past.
+  watchlist: {
+    // Epoch-ms cutoff. While now < freeUntil, the watchlist is free for any
+    // access-holder. Default = year ~3000 (far-future = no-op).
+    freeUntil: getEnvNumber('WATCHLIST_FREE_UNTIL', 32503680000000),
+    // Master kill-switch for the whole feature. Defaults on; set 'false' to fully gate.
+    deployEnabled: getEnvVar('WATCHLIST_DEPLOY_ENABLED', 'true') !== 'false',
+    // Price (USDC) of the watchlist add-on once it leaves the free launch window.
+    addonUsdc: getEnvNumber('WATCHLIST_ADDON_USDC', 2)
+  },
+
   urls: {
     leaderboard: getEnvVar(
       'LEADERBOARD_URL',

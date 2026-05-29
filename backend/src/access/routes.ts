@@ -4,6 +4,7 @@ import { generateToken } from '../auth/jwt';
 import { issueNonce, verifySiwe, SiweVerifyError } from './siwe';
 import { verifyAndGrant, processMoralisWebhook, verifyMoralisSignature, PaymentError } from './paymentVerifier';
 import { getStatus, upsertWhitelist, normalizeWallet, hasActiveAccess } from './db';
+import { requireWatchlistWallet } from './entitlements';
 import { getPlan, isPlanId, humanAmount, planAmountBaseUnits, PlanId } from './plans';
 import { addWatch, removeWatch, getWatchlist } from './watchlist';
 import { state } from '../core/state';
@@ -53,7 +54,9 @@ router.post('/auth/verify', async (req: Request, res: Response) => {
       hasAccess: status.hasAccess,
       plan: status.plan,
       expiresAt: status.expiresAt,
-      whitelisted: status.whitelisted
+      whitelisted: status.whitelisted,
+      watchlistAccess: status.watchlistAccess,
+      watchlistFree: status.watchlistFree
     });
   } catch (err) {
     if (err instanceof SiweVerifyError) {
@@ -182,7 +185,7 @@ router.post('/admin/whitelist', (req: Request, res: Response) => {
 // GET /api/watchlist -> the signed-in wallet's pinned rivals, enriched with live
 // "online now" status + rank/vstar from the 1s radar (core/state).
 router.get('/watchlist', (req: Request, res: Response) => {
-  const wallet = requirePaidWallet(req, res);
+  const wallet = requireWatchlistWallet(req, res);
   if (!wallet) return;
 
   const activeWindow = config.windows.active;
@@ -205,7 +208,7 @@ router.get('/watchlist', (req: Request, res: Response) => {
 
 // POST /api/watchlist { playerUserId, playerName } -> pin a rival
 router.post('/watchlist', (req: Request, res: Response) => {
-  const wallet = requirePaidWallet(req, res);
+  const wallet = requireWatchlistWallet(req, res);
   if (!wallet) return;
 
   const { playerUserId, playerName } = req.body as { playerUserId?: string; playerName?: string };
@@ -218,7 +221,7 @@ router.post('/watchlist', (req: Request, res: Response) => {
 
 // DELETE /api/watchlist/:playerUserId -> unpin a rival
 router.delete('/watchlist/:playerUserId', (req: Request, res: Response) => {
-  const wallet = requirePaidWallet(req, res);
+  const wallet = requireWatchlistWallet(req, res);
   if (!wallet) return;
   removeWatch(wallet, req.params.playerUserId);
   res.json({ ok: true });
