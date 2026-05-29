@@ -5,12 +5,9 @@ import fs from 'fs';
 import path from 'path';
 import { config } from './config';
 import { vstarScheduler } from './core/vstarScheduler';
-import { initializeAuth } from './auth';
 import { apiRouter } from './routes/api';
 import { axiesRouter } from './routes/axies';
-import { paymentsRouter } from './routes/payments';
-import { initPaymentDb, closePaymentDb } from './services/paymentDb';
-import { startPaymentVerifier, stopPaymentVerifier } from './services/paymentVerifier';
+import { mountAccess, initAccess, startAccess, stopAccess } from './access';
 
 const app = express();
 const DEFAULT_DEV_ORIGIN = 'http://localhost:5174';
@@ -50,7 +47,15 @@ function getAllowedOrigins(): string[] {
   return [...origins];
 }
 
-app.use(express.json());
+// Capture the raw body so the Moralis Streams webhook can HMAC-verify the
+// exact bytes Moralis signed.
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      (req as express.Request & { rawBody?: Buffer }).rawBody = buf;
+    }
+  })
+);
 
 const allowedOrigins = getAllowedOrigins();
 const corsMiddleware = cors((req, callback) => {
@@ -75,7 +80,15 @@ const corsMiddleware = cors((req, callback) => {
     methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
     maxAge: 86400,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-API-Key']
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'X-API-Key',
+      'X-Admin-Token',
+      'X-Signature'
+    ]
   });
 });
 
@@ -85,10 +98,9 @@ app.use('/api', (_req, res, next) => {
   next();
 });
 
-initializeAuth(app);
+mountAccess(app);
 app.use('/api', apiRouter);
 app.use('/api/axies', axiesRouter);
-app.use('/api/payments', paymentsRouter);
 
 const frontendDistPath = path.resolve(process.cwd(), '..', 'frontend', 'dist');
 const legacyRootPath = path.resolve(__dirname, 'payment.html');
@@ -111,13 +123,11 @@ const startServer = () => {
     console.log('Environment:', process.env.NODE_ENV || 'development');
     console.log('Port:', config.port);
 
-    // Initialize payment database
-    initPaymentDb();
-    console.log('Payment database initialized');
+    // Initialize on-chain access store
+    initAccess();
 
-    // Start payment verifier
-    startPaymentVerifier();
-    console.log('Payment verifier started');
+    // Start the eth_getLogs reconcile poller (default-on)
+    startAccess();
 
     app.listen(config.port, () => {
       console.log(`Server running on port ${config.port}`);
@@ -160,8 +170,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const gracefulShutdown = () => {
   console.log('\nShutting down gracefully...');
   vstarScheduler.stop();
-  stopPaymentVerifier();
-  closePaymentDb();
+  stopAccess();
   process.exit(0);
 };
 

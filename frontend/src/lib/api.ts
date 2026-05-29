@@ -1,7 +1,5 @@
 import { API_BASE } from './api.config';
 
-const APP_BASE_URL = import.meta.env.BASE_URL || '/';
-
 export interface ActivePlayer {
   userId: string;
   name: string;
@@ -56,18 +54,38 @@ export interface SessionSummary {
 
 interface DecodedJwtPayload {
   exp?: number;
-  id?: string;
-  username?: string;
+  address?: string;
 }
 
-export interface AuthStatus {
-  authenticated: boolean;
-  authorized: boolean;
-  user: {
-    id: string;
-    username: string;
-    avatar: string | null;
-  } | null;
+export type PlanId = '2weeks' | '1month' | '3month' | '1year';
+
+export interface AccessStatus {
+  address: string;
+  hasAccess: boolean;
+  plan: PlanId | null;
+  expiresAt: number | null;
+  whitelisted: boolean;
+}
+
+export interface VerifyResponse extends AccessStatus {
+  token: string;
+}
+
+export interface PaymentIntent {
+  to: string;
+  token: string;
+  tokenContract: string;
+  chainId: number;
+  decimals: number;
+  amount: string;
+  humanAmount: string;
+  plan: PlanId;
+}
+
+export interface ClaimResponse {
+  hasAccess: boolean;
+  expiresAt: number | null;
+  plan: PlanId | null;
 }
 
 export function decodeJwtPayload(token: string): DecodedJwtPayload | null {
@@ -131,6 +149,15 @@ export const TokenManager = {
   }
 };
 
+async function readError(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { error?: string; message?: string };
+    return body.error || body.message || `HTTP ${response.status}`;
+  } catch {
+    return `HTTP ${response.status}`;
+  }
+}
+
 export const api = {
   async getActivePlayers(): Promise<ActiveResponse> {
     const response = await fetch(`${API_BASE}/active-players`, {
@@ -144,61 +171,88 @@ export const api = {
     return response.json();
   },
 
-  async getAuthStatus(): Promise<AuthStatus> {
-    try {
-      const token = TokenManager.getToken();
-
-      if (!token || TokenManager.isTokenExpired(token)) {
-        TokenManager.removeToken();
-        return {
-          authenticated: false,
-          authorized: false,
-          user: null
-        };
-      }
-
-      const response = await fetch(`${API_BASE}/auth/status`, {
-        headers: TokenManager.getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          TokenManager.removeToken();
-        }
-
-        return {
-          authenticated: false,
-          authorized: false,
-          user: null
-        };
-      }
-
-      return response.json();
-    } catch (_error) {
-      return {
-        authenticated: false,
-        authorized: false,
-        user: null
-      };
+  // SIWE step 1: ask the server for a single-use nonce bound to the session
+  // cookie. credentials:'include' is mandatory — the nonce lives in the session.
+  async getNonce(): Promise<string> {
+    const response = await fetch(`${API_BASE}/auth/nonce`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      throw new Error(await readError(response));
     }
+    const data = (await response.json()) as { nonce: string };
+    return data.nonce;
+  },
+
+  // SIWE step 2: hand the signed EIP-4361 message back; the server verifies it,
+  // pins the wallet onto the session, and returns a JWT for the gated data routes.
+  async verifySiwe(message: string, signature: string): Promise<VerifyResponse> {
+    const response = await fetch(`${API_BASE}/auth/verify`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, signature })
+    });
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
+    return response.json();
+  },
+
+  // On-chain access for the wallet pinned to this session.
+  async getAccessStatus(): Promise<AccessStatus | null> {
+    const response = await fetch(`${API_BASE}/access/status`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (response.status === 401) {
+      return null;
+    }
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
+    return response.json();
+  },
+
+  async getPaymentIntent(plan: PlanId): Promise<PaymentIntent> {
+    const response = await fetch(`${API_BASE}/payment/intent?plan=${encodeURIComponent(plan)}`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
+    return response.json();
+  },
+
+  // Submit a settled USDC transfer tx; the server verifies it on-chain (from ==
+  // signed-in wallet, to == receiver, finalized, value >= price) then grants access.
+  async claimPayment(txHash: string): Promise<ClaimResponse> {
+    const response = await fetch(`${API_BASE}/payment/claim`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txHash })
+    });
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
+    return response.json();
   },
 
   async logout(): Promise<void> {
     try {
       await fetch(`${API_BASE}/auth/logout`, {
         method: 'POST',
-        headers: TokenManager.getAuthHeaders()
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
       });
-    } catch (_error) {
-      // Client-side token removal is the important part.
+    } catch {
+      // Server-side session teardown is best-effort; the client clears regardless.
     } finally {
       TokenManager.removeToken();
-      window.location.href = APP_BASE_URL;
     }
-  },
-
-  loginWithDiscord() {
-    window.location.href = `${API_BASE}/auth/discord`;
   },
 
   async getPredictions(userId: string): Promise<PredictionResponse> {
@@ -249,6 +303,9 @@ export const getActivePlayers = api.getActivePlayers;
 export const getPredictions = api.getPredictions;
 export const getSessionSummary = api.getSessionSummary;
 export const getHealth = api.getHealth;
-export const getAuthStatus = api.getAuthStatus;
-export const loginWithDiscord = api.loginWithDiscord;
+export const getNonce = api.getNonce;
+export const verifySiwe = api.verifySiwe;
+export const getAccessStatus = api.getAccessStatus;
+export const getPaymentIntent = api.getPaymentIntent;
+export const claimPayment = api.claimPayment;
 export const logout = api.logout;

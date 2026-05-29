@@ -1,8 +1,84 @@
 # Append to the VPS Caddyfile (the same Caddy that fronts waitdead-crm + waitdead-v2).
 # Caddy auto-provisions TLS. Pick the real subdomain and point its DNS A record
 # at the VPS IP first.
+#
+# ===========================================================================
+# Philippines geo-block — STOPGAP ONLY. Read ops/vps/Caddyfile.snippet notes
+# below and docs/PAYMENTS-SOTA-2026.md "Geo-block is a stopgap" before relying
+# on this. The REAL access control is wallet-payment gating in the backend;
+# geo-blocking is trivially bypassed with any VPN/proxy and only deters casual
+# unpaid PH traffic while the payment cutover lands.
+# ===========================================================================
+#
+# Pick ONE of the two approaches below depending on how this Caddy is fronted.
 
+# ---------------------------------------------------------------------------
+# Approach A — MaxMind GeoIP2 module (Caddy reads the client IP -> country).
+# Use when Caddy faces the public internet directly (our Contabo setup: Caddy
+# is the edge, no Cloudflare in front). Requires a Caddy binary BUILT WITH the
+# geoip2 module — stock Caddy does NOT include it:
+#
+#   xcaddy build --with github.com/zhangjiayin/caddy-geoip2
+#
+# and a MaxMind GeoLite2-Country.mmdb (free MaxMind account -> license key ->
+# `geoipupdate`, or download the .mmdb). Point geoip2 at it in the GLOBAL
+# options block at the TOP of the Caddyfile (NOT inside a site block):
+#
+#   {
+#       geoip2_api maxmind {
+#           account_id     YOUR_MAXMIND_ACCOUNT_ID
+#           api_key        YOUR_MAXMIND_LICENSE_KEY
+#           db_directory   /etc/caddy/geoip
+#           update_url     "https://updates.maxmind.com"
+#           update_frequency 86400
+#       }
+#   }
+#
+# Then inside the site block the @ph matcher tests the resolved country:
+#
+#   axie.waitdead.com {
+#       encode zstd gzip
+#       geoip2_vars strict          # populates {geoip2.country_code} from client IP
+#       @ph expression `{geoip2.country_code} == "PH"`
+#       respond @ph "Service not available in your region." 403
+#       reverse_proxy 127.0.0.1:4010
+#   }
+
+# ---------------------------------------------------------------------------
+# Approach B — Cloudflare CF-IPCountry header (NO custom Caddy build needed).
+# Use ONLY if axie.waitdead.com is proxied THROUGH Cloudflare (orange cloud).
+# Cloudflare injects a trusted `CF-IPCountry` header with the 2-letter country.
+# This needs zero MaxMind setup and works on stock Caddy. SECURITY NOTE: trust
+# this header ONLY when the request truly comes from Cloudflare — otherwise a
+# client can forge CF-IPCountry. Restrict the upstream to Cloudflare IP ranges
+# (trusted_proxies) or have the backend ignore the header unless remote_ip is CF.
+#
+#   axie.waitdead.com {
+#       encode zstd gzip
+#       @ph header CF-IPCountry PH
+#       respond @ph "Service not available in your region." 403
+#       reverse_proxy 127.0.0.1:4010
+#   }
+
+# ---------------------------------------------------------------------------
+# Default (NO geo-block) — what ships until one of the above is wired. The
+# payment gate in the backend is the real control; uncomment a block above to
+# add the PH stopgap on top.
 axie.waitdead.com {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:4010
 }
+
+# ---------------------------------------------------------------------------
+# HONEST LIMITATION (do not oversell this to the owner):
+#   * A VPN, proxy, Tor, or a relocated phone instantly bypasses a country
+#     block — PH users who want in will be in. This is deterrence, not control.
+#   * MaxMind GeoLite2 is ~accurate at the country level but mislabels some IPs;
+#     expect a few false 403s (a non-PH user routed via a PH-registered IP).
+#   * Mobile carriers and shared CGNAT can geolocate inconsistently.
+#   * It blocks the WHOLE site (including the /api/payment/* flow), so a
+#     legitimate PH user could never pay even if you wanted them to.
+# The durable fix is the SOTA-2026 wallet-payment gate: a wallet only sees the
+# tracker after an on-chain USDC payment (or an owner whitelist entry), which a
+# VPN cannot fake. Treat the geo-block as a temporary lid while that lands, then
+# consider removing it. See docs/PAYMENTS-SOTA-2026.md.

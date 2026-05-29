@@ -1,47 +1,31 @@
 import session from 'express-session';
-import { authConfig } from './config';
+
+const DEFAULT_DEV_SESSION_SECRET = 'axie-dev-session-secret';
+const isProduction = process.env.NODE_ENV === 'production';
+
+function cleanEnvValue(value?: string): string {
+  return (value || '').trim();
+}
+
+function getSessionSecret(): string {
+  const secret =
+    cleanEnvValue(process.env.SESSION_SECRET) ||
+    cleanEnvValue(process.env.JWT_SECRET) ||
+    (isProduction ? '' : DEFAULT_DEV_SESSION_SECRET);
+  if (!secret) {
+    throw new Error('SESSION_SECRET or JWT_SECRET must be set in production');
+  }
+  return secret;
+}
 
 export const sessionMiddleware = session({
-  secret: authConfig.session.secret,
-  resave: authConfig.session.resave,
-  saveUninitialized: authConfig.session.saveUninitialized,
+  secret: getSessionSecret(),
+  resave: false,
+  saveUninitialized: false,
   cookie: {
-    ...authConfig.session.cookie,
+    maxAge: 24 * 60 * 60 * 1000,
     sameSite: 'lax',
-    secure:
-      process.env.NODE_ENV === 'production'
-        ? true
-        : authConfig.session.cookie.secure,
+    secure: isProduction,
     httpOnly: true
   }
 });
-
-export function isAuthenticated(req: any, res: any, next: any) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-
-  res.status(401).json({
-    authenticated: false,
-    message: 'Usuario no autenticado'
-  });
-}
-
-export function isAuthorized(req: any, res: any, next: any) {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({
-      authenticated: false,
-      message: 'Usuario no autenticado'
-    });
-  }
-
-  if (req.user?.isAuthorized) {
-    return next();
-  }
-
-  return res.status(403).json({
-    authenticated: true,
-    authorized: false,
-    message: 'Usuario no autorizado'
-  });
-}

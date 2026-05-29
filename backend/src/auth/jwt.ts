@@ -1,18 +1,18 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import { isDiscordUserAllowed } from './config';
+import { hasActiveAccess, isWhitelisted, normalizeWallet } from '../access/db';
 
 export interface JWTPayload {
-  id: string;
-  username: string;
-  avatar: string | null;
-  isAuthorized: boolean;
+  // The SIWE-authenticated wallet (EIP-55 checksum form).
+  address: string;
   iat?: number;
   exp?: number;
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: JWTPayload;
+  // Populated by authenticateJWT/isAuthenticated; isAuthorized is recomputed
+  // live from on-chain access so expiry/revocation take effect immediately.
+  user?: JWTPayload & { isAuthorized: boolean };
 }
 
 const DEFAULT_DEV_JWT_SECRET = 'axie-dev-jwt-secret';
@@ -38,80 +38,73 @@ function requireJwtSecret(): string {
   return secret;
 }
 
-const JWT_EXPIRES_IN =
-  (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
 
-export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, requireJwtSecret(), {
+export function generateToken(address: string): string {
+  return jwt.sign({ address: normalizeWallet(address) }, requireJwtSecret(), {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'axie-mvp-backend'
   });
 }
 
-export function verifyToken(token: string): JWTPayload | null {
+// Authorization is driven by on-chain access, not baked into the token.
+export function computeIsAuthorized(address: string): boolean {
+  return hasActiveAccess(address) || isWhitelisted(address);
+}
+
+export function verifyToken(token: string): (JWTPayload & { isAuthorized: boolean }) | null {
   try {
     const secret = getJwtSecret();
     if (!secret) {
       return null;
     }
-
     const decoded = jwt.verify(token, secret) as JWTPayload;
-    return {
-      ...decoded,
-      isAuthorized: decoded.isAuthorized && isDiscordUserAllowed(decoded.id)
-    };
+    if (!decoded.address) {
+      return null;
+    }
+    const address = normalizeWallet(decoded.address);
+    return { ...decoded, address, isAuthorized: computeIsAuthorized(address) };
   } catch (error) {
     console.error('Invalid JWT:', error instanceof Error ? error.message : error);
     return null;
   }
 }
 
-export function authenticateJWT(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) {
+export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({
-      authenticated: false,
-      message: 'Token de acceso requerido'
-    });
+    return res.status(401).json({ authenticated: false, message: 'Token de acceso requerido' });
   }
 
   const decoded = verifyToken(token);
   if (!decoded) {
-    return res.status(401).json({
-      authenticated: false,
-      message: 'Token invalido o expirado'
-    });
+    return res.status(401).json({ authenticated: false, message: 'Token invalido o expirado' });
   }
 
   req.user = decoded;
   next();
 }
 
-export function requireAuthorization(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) {
+export function requireAuthorization(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
-    return res.status(401).json({
-      authenticated: false,
-      message: 'Usuario no autenticado'
-    });
+    return res.status(401).json({ authenticated: false, message: 'Usuario no autenticado' });
   }
 
   if (!req.user.isAuthorized) {
-    return res.status(403).json({
-      authenticated: true,
-      authorized: false,
-      message: 'Usuario no autorizado'
-    });
+    return res
+      .status(403)
+      .json({ authenticated: true, authorized: false, message: 'Usuario sin acceso activo' });
   }
 
   next();
+}
+
+// Canonical gate names per the API contract. isAuthenticated proves the wallet
+// session; isAuthorized additionally requires live on-chain access.
+export const isAuthenticated = authenticateJWT;
+
+export function isAuthorized(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  authenticateJWT(req, res, () => requireAuthorization(req, res, next));
 }

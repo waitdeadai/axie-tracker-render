@@ -1,6 +1,5 @@
 import { formatCurrentTime } from '../utils/time';
 import { UserMenu } from './UserMenu';
-import type { AuthStatus } from '../lib/api';
 import type { SortOption } from '../App';
 
 interface HeaderProps {
@@ -8,7 +7,6 @@ interface HeaderProps {
   rps: number;
   etaSeconds: number;
   playerCount: number;
-  user: AuthStatus['user'];
   sortBy: SortOption;
   onSortChange: (sort: SortOption) => void;
   showTop100Only: boolean;
@@ -17,7 +15,7 @@ interface HeaderProps {
   onTopRangeChange: (range: 'top200' | 'top300') => void;
 }
 
-export function Header({ updatedAt, rps, etaSeconds, playerCount, user, sortBy, onSortChange, showTop100Only, onToggleTop100, topRange, onTopRangeChange }: HeaderProps) {
+export function Header({ updatedAt, rps, etaSeconds, playerCount, sortBy, onSortChange, showTop100Only, onToggleTop100, topRange, onTopRangeChange }: HeaderProps) {
   return (
     <header className={`border-b transition-all duration-300 ${
       sortBy === 'sniper' 
@@ -150,11 +148,9 @@ export function Header({ updatedAt, rps, etaSeconds, playerCount, user, sortBy, 
                 Updated: <span className="font-mono text-xs">{formatCurrentTime(new Date(updatedAt).getTime())}</span>
               </div>
             </div>
-            {user && (
-              <div className="border-l border-gray-700 pl-3 lg:pl-4">
-                <UserMenu user={user} />
-              </div>
-            )}
+            <div className="border-l border-gray-700 pl-3 lg:pl-4">
+              <UserMenu />
+            </div>
           </div>
         </div>
       </div>

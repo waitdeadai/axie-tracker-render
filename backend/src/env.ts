@@ -23,21 +23,6 @@ const envSchema = z.object({
   GLOBAL_RESERVOIR: z.string().transform(Number).default('450'),
   GLOBAL_REFRESH_MS: z.string().transform(Number).default('60000'),
   REQUEST_TIMEOUT_MS: z.string().transform(Number).default('5000'),
-  // Payment configuration
-  PAYMENT_WALLET_ADDRESS: z.string().default('ronin:0000000000000000000000000000000000000000'),
-  PAYMENT_WALLET_PRIVATE_KEY: z.string().default(''),
-  RONIN_RPC_URL: z.string().default('https://api.roninchain.com/rpc'),
-  USDC_CONTRACT: z.string().default('0x9433e1776c043289c0a5aba2eb9ff8dd1e8471c3'),
-  RON_DECIMALS: z.string().transform(Number).default('18'),
-  USDC_DECIMALS: z.string().transform(Number).default('6'),
-  PLANS_USDC_1MONTH: z.string().transform(Number).default('5'),
-  PLANS_USDC_3MONTH: z.string().transform(Number).default('12'),
-  PLANS_USDC_1YEAR: z.string().transform(Number).default('40'),
-  PLANS_RON_1MONTH: z.string().transform(Number).default('50'),
-  PLANS_RON_3MONTH: z.string().transform(Number).default('120'),
-  PLANS_RON_1YEAR: z.string().transform(Number).default('400'),
-  PLANS_USDC_2WEEKS: z.string().transform(Number).default('2'),
-  PLANS_RON_2WEEKS: z.string().transform(Number).default('20'),
 });
 
 const env = envSchema.parse(process.env);
