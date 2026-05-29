@@ -199,7 +199,7 @@ export function PayGate() {
           <div className="mt-8">
             <button
               onClick={onPrimary}
-              disabled={working || (!authed && !walletInstalled)}
+              disabled={working}
               className="inline-flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed text-gray-900 font-semibold py-3.5 px-7 rounded-lg transition-colors"
             >
               {working && <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />}
@@ -275,7 +275,7 @@ export function PayGate() {
           <div className="mt-6">
             <button
               onClick={onPrimary}
-              disabled={working || (!authed && !walletInstalled)}
+              disabled={working}
               className="inline-flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed text-gray-900 font-semibold py-3.5 px-7 rounded-lg transition-colors"
             >
               {working && <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />}
