@@ -1,74 +1,25 @@
 import { Router } from "express";
-import fetch from "node-fetch";
-import { load } from "cheerio";
 import { getUserRankedFighters } from "../services/originsBattleLogs";
-import { buildAxieCdnUrl, buildAxieUrl } from "../shared/axieImages";
+import { buildAxieCdnUrl } from "../shared/axieImages";
 import { config } from "../config";
 import { getVerificationStats } from "../services/axieVerification";
 import { skyMavisService } from "../services/skyMavis";
 import { cache } from "../core/cache";
 import { state } from "../core/state";
 
-const SECRET = config.axieTopSecretKey;
-const AXIE_TOP_BASE = config.urls.axieTop.replace(/\/+$/, "");
-const AXIE_TOP_REFERER = `${AXIE_TOP_BASE}/`;
-const AXIE_TOP_UA =
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36";
 export const axiesRouter = Router();
 
-async function fetchAxieTopMorphImages(userId: string): Promise<string[]> {
-  const cached = cache.getImages(userId);
-  if (cached && cached.length > 0) {
-    return cached;
-  }
-
-  const response = await fetch(`${AXIE_TOP_BASE}/profile/${encodeURIComponent(userId)}/latestRankedTeam`, {
-    headers: {
-      Accept: "text/html,application/xhtml+xml",
-      Referer: AXIE_TOP_REFERER,
-      "User-Agent": AXIE_TOP_UA
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`axie.top latestRankedTeam responded ${response.status}`);
-  }
-
-  const html = await response.text();
-  const $ = load(html);
-  const urls = $(".axie-image-container .axie-battle-image")
-    .map((_, element) => $(element).attr("src") || "")
-    .get()
-    .filter((src) => src.startsWith("https://static.axie.top/axie/?"));
-
-  const uniqueUrls = [...new Set(urls)];
-  if (uniqueUrls.length > 0) {
-    cache.setImages(userId, uniqueUrls);
-  }
-
-  return uniqueUrls;
-}
-
+// Team images come from the OFFICIAL Sky Mavis Axie CDN (axiecdn.axieinfinity.com),
+// keyed by axieID from the player's ranked battle log. We no longer scrape axie.top
+// (the competitor): the CDN render already reflects the axie's current on-chain form,
+// so it needs no genes/morph renderer and removes the fragile HTML scrape dependency.
 function mapFightersToImageUrls(
-  fighters: Array<{ axieID: number; genes?: string | null; genes_metamorph?: string | null }>,
-  morphUrls: string[]
+  fighters: Array<{ axieID: number; genes?: string | null; genes_metamorph?: string | null }>
 ) {
-  return fighters.map((fighter, index) => {
-    const cdnUrl = buildAxieCdnUrl(fighter.axieID);
-    const out: any = { axieID: fighter.axieID };
-
-    out.primary = morphUrls[index] || cdnUrl;
-
-    if (out.primary !== cdnUrl) {
-      out.fallback = cdnUrl;
-    } else if (fighter.genes_metamorph) {
-      out.fallback = buildAxieUrl(fighter.genes_metamorph, true, SECRET);
-    } else if (fighter.genes) {
-      out.fallback = buildAxieUrl(fighter.genes, false, SECRET);
-    }
-
-    return out;
-  });
+  return fighters.map((fighter) => ({
+    axieID: fighter.axieID,
+    primary: buildAxieCdnUrl(fighter.axieID),
+  }));
 }
 
 // Devuelve URLs ya firmadas (metamorph prioritario + fallback normal)
@@ -77,12 +28,8 @@ axiesRouter.get("/by-user/:userId", async (req, res) => {
     console.log(`🖼️ Requesting axies for user: ${req.params.userId}`);
     
     const fighters = await getUserRankedFighters(req.params.userId);
-    const morphUrls = await fetchAxieTopMorphImages(req.params.userId).catch((error) => {
-      console.warn(`⚠️ Could not scrape axie.top morph images for ${req.params.userId}:`, error);
-      return [];
-    });
     console.log(`🖼️ Got ${fighters.length} fighters for user: ${req.params.userId}`);
-    const list = mapFightersToImageUrls(fighters, morphUrls);
+    const list = mapFightersToImageUrls(fighters);
     
     console.log(`🖼️ Built ${list.length} axie URLs for user: ${req.params.userId}`);
     
@@ -127,8 +74,7 @@ axiesRouter.get("/debug", (req, res) => {
 // Endpoint de prueba simple
 axiesRouter.get("/test", (req, res) => {
   try {
-    const testGenes = "0x2000000000000300008100e08308000000010001088081000001000010a043020000009008004600000000000000000000";
-    const url = buildAxieUrl(testGenes, false, SECRET);
+    const url = buildAxieCdnUrl(123456);
     res.json({
       testUrl: url,
       timestamp: new Date().toISOString()
@@ -181,11 +127,7 @@ axiesRouter.get("/user-data/:userId", async (req, res) => {
     
     // Obtener battle logs UNA SOLA VEZ usando getUserRankedFighters
     const fighters = await getUserRankedFighters(userId);
-    const morphUrls = await fetchAxieTopMorphImages(userId).catch((error) => {
-      console.warn(`⚠️ Could not scrape axie.top morph images for ${userId}:`, error);
-      return [];
-    });
-    const axiesList = mapFightersToImageUrls(fighters, morphUrls);
+    const axiesList = mapFightersToImageUrls(fighters);
     
     // Extraer información del último oponente de los mismos battle logs
     let lastOpponent = null;
