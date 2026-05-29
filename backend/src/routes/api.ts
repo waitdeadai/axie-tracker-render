@@ -105,6 +105,15 @@ router.get('/active-players', ...radarGate, (_req, res) => {
   res.json({ updatedAt: new Date().toISOString(), players });
 });
 
+// GET /api/live/active-count — PUBLIC teaser for the paywall. Count only, NO
+// identities/data leaked: how many Top-200 ranked players are active right now.
+router.get('/live/active-count', (_req, res) => {
+  const players = state.getSnapshot();
+  const count = players.filter((p: { topRank: number }) => p.topRank <= 200).length;
+  res.set('Cache-Control', 'no-store');
+  res.json({ count });
+});
+
 // GET /api/predictions/:userId — PAID (predicted sessions = premium)
 router.get('/predictions/:userId', requireAccess, async (req, res) => {
   const { userId } = req.params;

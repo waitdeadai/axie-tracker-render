@@ -181,6 +181,21 @@ export const api = {
     return response.json();
   },
 
+  // Public, count-only paywall teaser. Tolerant: returns 0 on any error so the
+  // PayGate can fall back to its always-true "radar is running" copy.
+  async getActiveCount(): Promise<number> {
+    try {
+      const response = await fetch(`${API_BASE}/live/active-count`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) return 0;
+      const data = (await response.json()) as { count?: number };
+      return typeof data.count === 'number' ? data.count : 0;
+    } catch {
+      return 0;
+    }
+  },
+
   // --- Rival watchlist (paid "Live Rival Radar"). Session-cookie bound, so
   // credentials:'include' is mandatory alongside the JWT auth headers. ---
   async getWatchlist(): Promise<RivalStatus[]> {
