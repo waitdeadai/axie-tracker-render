@@ -14,6 +14,11 @@ const COUNT_REFRESH_MS = 5000;
 // deadline — NOT a per-visitor resetting timer.
 const SEASON_END_LABEL = 'June 9';
 
+// OWNER: set your support channel (Discord/X/Telegram URL or @handle). Shown on the
+// paywall so a buyer who pays but doesn't see access has a way to reach you. Leave
+// empty to hide the contact line (the on-chain self-serve recourse still shows).
+const SUPPORT_HANDLE = '';
+
 const PHASE_LABEL: Record<PayPhase, string> = {
   idle: '',
   intent: 'Reading payment instructions…',
@@ -285,6 +290,13 @@ export function PayGate() {
             {phase === 'error' && (
               <div className="mt-4 space-y-2">
                 <div className="text-red-400 text-sm bg-red-900/20 border border-red-800/40 rounded-md px-3 py-2">{payError}</div>
+                {txHash && (
+                  <div className="text-gray-300 text-xs bg-gray-900/50 border border-gray-700 rounded-md px-3 py-2">
+                    Your 2 USDC was sent and is safe on-chain (tx below). Nothing is lost — access is
+                    granted automatically once the block finalizes. Retry verification, or just reconnect
+                    the same wallet in a minute.
+                  </div>
+                )}
                 <button onClick={() => void retryClaim()} className="text-sm text-cyan-400 hover:text-cyan-300 underline">
                   {txHash ? 'Retry verification' : 'Retry payment'}
                 </button>
@@ -321,6 +333,14 @@ export function PayGate() {
           </p>
           <p className="text-amber-300/80">
             Heads up: keep a little RON in your wallet for gas — the 2 USDC payment is a normal Ronin transaction with a tiny network fee.
+          </p>
+          <p className="text-gray-400 pt-2 border-t border-gray-700/60">
+            <span className="text-white font-medium">Terms:</span> 2 USDC buys 14 days of access. All
+            sales are final — no refunds.{' '}
+            <span className="text-white font-medium">Paid but no access yet?</span> Your payment is
+            recorded on-chain and final — keep this page open or reconnect the same wallet and access
+            re-syncs within a few minutes. Your transaction hash is your proof.
+            {SUPPORT_HANDLE ? <> Still stuck? Reach us at {SUPPORT_HANDLE}.</> : null}
           </p>
         </section>
       </div>

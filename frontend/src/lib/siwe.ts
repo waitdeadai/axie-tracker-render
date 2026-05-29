@@ -2,7 +2,8 @@ import { SiweMessage } from 'siwe';
 import { RONIN_CHAIN_ID, signMessage } from './wallet';
 import { getNonce, verifySiwe, TokenManager, type VerifyResponse } from './api';
 
-const SIWE_STATEMENT = 'Sign in to Axie MVP to access the live tracker.';
+const SIWE_STATEMENT =
+  'Sign in to access the live Axie ladder tracker. This is a free signature — it does not move any funds.';
 
 // Full EIP-4361 flow: fetch a session-bound nonce, build the message with
 // siwe.prepareMessage() (byte-identical to what the backend SiweMessage parser
