@@ -87,3 +87,28 @@ export async function transferToken(params: {
   const tx = await token.transfer(params.to, BigInt(params.amount));
   return tx.hash as string;
 }
+
+// True on a phone/tablet browser. Conservative: only used to OFFER an extra CTA,
+// never to block the normal injected path.
+export function isMobileBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+}
+
+// A normal mobile browser has no injected provider and isn't already inside the
+// Ronin in-app browser — exactly the dead end the old "get it here" link handled
+// badly (it only sent users to install, never reaching the app they already have).
+export function needsRoninInAppBrowser(): boolean {
+  return isMobileBrowser() && !isRoninWalletInstalled();
+}
+
+// Universal link that re-opens THIS dapp URL inside the Ronin app's in-app dApp
+// browser, where window.ronin is injected so the existing injected connector +
+// SIWE flow works unchanged. Format per Sky Mavis docs
+// (docs.skymavis.com/ronin/wallet/guides/use-deep-links). MUST be attached to a
+// clickable <a> — never window.open.
+export function buildRoninInAppBrowserLink(targetUrl?: string): string {
+  const url = targetUrl ?? (typeof window !== 'undefined' ? window.location.href : '');
+  return `https://wallet.roninchain.com/in_app_browser?url=${encodeURIComponent(url)}`;
+}

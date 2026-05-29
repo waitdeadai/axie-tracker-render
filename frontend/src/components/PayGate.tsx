@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { api, getPaymentIntent, claimPayment, type PlanId } from '../lib/api';
-import { transferToken } from '../lib/wallet';
+import { transferToken, needsRoninInAppBrowser, buildRoninInAppBrowserLink } from '../lib/wallet';
 
 type PayPhase = 'idle' | 'intent' | 'transfer' | 'claim' | 'polling' | 'done' | 'error';
 
@@ -57,6 +57,11 @@ export function PayGate() {
   const authed = authPhase === 'authenticated';
   const payBusy = phase !== 'idle' && phase !== 'error' && phase !== 'done';
   const working = isBusy || payBusy;
+
+  // On a normal mobile browser the Ronin provider isn't injected, so the only way
+  // in is to re-open this page inside the Ronin app's in-app dApp browser.
+  const openInRonin = needsRoninInAppBrowser();
+  const roninAppLink = openInRonin ? buildRoninInAppBrowserLink() : null;
 
   // Live, count-only teaser — proves the radar is real before the user pays.
   useEffect(() => {
@@ -209,13 +214,33 @@ export function PayGate() {
               Sign in with your Ronin wallet. No email, no password, no card.
             </p>
             {!authed && !walletInstalled && (
-              <p className="mt-2 text-xs text-amber-300/90">
-                You'll need the Ronin Wallet —{' '}
-                <a href="https://wallet.roninchain.com/" target="_blank" rel="noopener noreferrer" className="underline">
-                  get it here
-                </a>
-                .
-              </p>
+              openInRonin && roninAppLink ? (
+                <p className="mt-3 text-sm text-gray-300">
+                  <a
+                    href={roninAppLink}
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-5 rounded-lg transition-colors"
+                  >
+                    Abrir en Ronin para iniciar sesión →
+                  </a>
+                  <span className="block mt-2 text-xs text-gray-400">
+                    ¿En el celular? Tocá el botón para abrir esta página dentro de tu app Ronin e iniciar sesión.
+                    ¿No tenés la app?{' '}
+                    <a href="https://wallet.roninchain.com/" target="_blank" rel="noopener noreferrer" className="underline">
+                      instalá Ronin Wallet
+                    </a>
+                    .
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-amber-300/90">
+                  You'll need the Ronin Wallet —{' '}
+                  <a href="https://wallet.roninchain.com/" target="_blank" rel="noopener noreferrer" className="underline">
+                    get it here
+                  </a>
+                  .
+                </p>
+              )
             )}
             {authError && <p className="mt-3 text-sm text-red-400">{authError}</p>}
           </div>
