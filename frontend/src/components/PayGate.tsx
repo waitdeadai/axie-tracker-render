@@ -17,7 +17,7 @@ const SEASON_END_LABEL = 'June 9';
 // OWNER: set your support channel (Discord/X/Telegram URL or @handle). Shown on the
 // paywall so a buyer who pays but doesn't see access has a way to reach you. Leave
 // empty to hide the contact line (the on-chain self-serve recourse still shows).
-const SUPPORT_HANDLE = '';
+const SUPPORT_HANDLE = 'fernando@waitdead.com';
 
 const PHASE_LABEL: Record<PayPhase, string> = {
   idle: '',
