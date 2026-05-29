@@ -3,8 +3,10 @@ import { config } from '../config';
 import { generateToken } from '../auth/jwt';
 import { issueNonce, verifySiwe, SiweVerifyError } from './siwe';
 import { verifyAndGrant, processMoralisWebhook, verifyMoralisSignature, PaymentError } from './paymentVerifier';
-import { getStatus, upsertWhitelist, normalizeWallet } from './db';
+import { getStatus, upsertWhitelist, normalizeWallet, hasActiveAccess } from './db';
 import { getPlan, isPlanId, humanAmount, planAmountBaseUnits, PlanId } from './plans';
+import { addWatch, removeWatch, getWatchlist } from './watchlist';
+import { state } from '../core/state';
 import './types';
 
 const router = Router();
@@ -13,6 +15,21 @@ const RECEIVER = config.payment.paymentWalletAddress;
 
 function sessionWallet(req: Request): string | null {
   return req.session?.siweAddress ?? null;
+}
+
+// Watchlist + radar are the PAID feature: require a SIWE session AND active access
+// (subscription or whitelist). Returns the wallet, or null after sending the error.
+function requirePaidWallet(req: Request, res: Response): string | null {
+  const wallet = sessionWallet(req);
+  if (!wallet) {
+    res.status(401).json({ error: 'No wallet session — complete SIWE first' });
+    return null;
+  }
+  if (!hasActiveAccess(wallet)) {
+    res.status(402).json({ error: 'Active access required — pay or get whitelisted' });
+    return null;
+  }
+  return wallet;
 }
 
 // GET /api/auth/nonce -> { nonce }
@@ -160,6 +177,51 @@ router.post('/admin/whitelist', (req: Request, res: Response) => {
     console.error('[admin/whitelist] error:', err);
     res.status(400).json({ error: 'Invalid address' });
   }
+});
+
+// GET /api/watchlist -> the signed-in wallet's pinned rivals, enriched with live
+// "online now" status + rank/vstar from the 1s radar (core/state).
+router.get('/watchlist', (req: Request, res: Response) => {
+  const wallet = requirePaidWallet(req, res);
+  if (!wallet) return;
+
+  const activeWindow = config.windows.active;
+  const now = Date.now();
+  const rivals = getWatchlist(wallet).map((w) => {
+    const p = state.getPlayer(w.player_user_id);
+    const online = Boolean(p && now - p.battleEndedAt <= activeWindow);
+    return {
+      playerUserId: w.player_user_id,
+      playerName: p?.name || w.player_name,
+      online,
+      topRank: p?.topRank ?? null,
+      vstar: p?.vstar ?? null,
+      lastBattleAt: p?.battleEndedAt ?? null,
+      won: p?.won ?? null
+    };
+  });
+  res.json({ rivals });
+});
+
+// POST /api/watchlist { playerUserId, playerName } -> pin a rival
+router.post('/watchlist', (req: Request, res: Response) => {
+  const wallet = requirePaidWallet(req, res);
+  if (!wallet) return;
+
+  const { playerUserId, playerName } = req.body as { playerUserId?: string; playerName?: string };
+  if (!playerUserId || typeof playerUserId !== 'string') {
+    return res.status(400).json({ error: 'playerUserId is required' });
+  }
+  const entry = addWatch(wallet, playerUserId, playerName ?? '');
+  res.json({ ok: true, playerUserId: entry.player_user_id });
+});
+
+// DELETE /api/watchlist/:playerUserId -> unpin a rival
+router.delete('/watchlist/:playerUserId', (req: Request, res: Response) => {
+  const wallet = requirePaidWallet(req, res);
+  if (!wallet) return;
+  removeWatch(wallet, req.params.playerUserId);
+  res.json({ ok: true });
 });
 
 export { router as accessRouter };

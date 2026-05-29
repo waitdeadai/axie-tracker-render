@@ -78,14 +78,23 @@ export function initAccessDb(): Database.Database {
       until INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS watchlist (
+      wallet TEXT NOT NULL,
+      player_user_id TEXT NOT NULL,
+      player_name TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (wallet, player_user_id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_subscriptions_expires ON subscriptions(expires_at);
     CREATE INDEX IF NOT EXISTS idx_whitelist_until ON whitelist(until);
+    CREATE INDEX IF NOT EXISTS idx_watchlist_wallet ON watchlist(wallet);
   `);
   console.log(`Access database initialized at: ${dbPath}`);
   return db;
 }
 
-function getDb(): Database.Database {
+export function getDb(): Database.Database {
   if (!db) {
     throw new Error('Access DB not initialized — call initAccessDb() first');
   }
