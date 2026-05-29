@@ -12,7 +12,7 @@ interface PlayerCardProps {
 export function PlayerCard({ player }: PlayerCardProps) {
   const cardClasses = `card bg-gray-800 border ${
     player.recent ? 'border-green-500' : 'border-gray-700'
-  } rounded-lg p-4 shadow-lg hover:scale-105 transition-transform duration-200 w-full h-full flex flex-col`;
+  } rounded-lg p-4 shadow-lg md:hover:scale-105 transition-transform duration-200 w-full h-full flex flex-col`;
 
   // Obtener imágenes de axies usando el hook
   const { fighters: imgs } = useAxieImages(player.userId, true);

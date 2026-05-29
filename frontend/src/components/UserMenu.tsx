@@ -57,12 +57,12 @@ export function UserMenu() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-700">
           <div className="px-4 py-3 border-b border-gray-700">
-            <p className="text-xs text-gray-400">Wallet de Ronin</p>
+            <p className="text-xs text-gray-400">Ronin Wallet</p>
             <p className="text-sm text-white font-mono truncate">{address}</p>
             {whitelisted ? (
-              <p className="text-xs text-purple-300 mt-1">Whitelist de temporada</p>
+              <p className="text-xs text-purple-300 mt-1">Season whitelist</p>
             ) : expiry ? (
-              <p className="text-xs text-green-400 mt-1">Acceso hasta {expiry}</p>
+              <p className="text-xs text-green-400 mt-1">Access until {expiry}</p>
             ) : null}
           </div>
           <button
@@ -78,7 +78,7 @@ export function UserMenu() {
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
               />
             </svg>
-            Desconectar
+            Disconnect
           </button>
         </div>
       )}

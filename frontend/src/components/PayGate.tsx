@@ -172,15 +172,15 @@ export function PayGate() {
       : 'Live ladder radar is running — unlock to watch the Top 200 move in real time.';
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-200">
+    <div className="min-h-screen bg-gray-900 text-gray-200 overflow-x-hidden">
       {/* connected-wallet chip / switch */}
       {address && (
-        <div className="absolute top-3 right-3 flex items-center gap-3">
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-cyan-600/15 border border-cyan-500/30 rounded-md">
-            <span className="w-2 h-2 bg-green-400 rounded-full" />
-            <span className="text-cyan-300 text-xs font-mono">{shortAddress(address)}</span>
+        <div className="absolute top-3 right-3 flex items-center gap-2 sm:gap-3 max-w-[calc(100vw-1.5rem)] min-w-0">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-cyan-600/15 border border-cyan-500/30 rounded-md min-w-0">
+            <span className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0" />
+            <span className="text-cyan-300 text-xs font-mono truncate">{shortAddress(address)}</span>
           </span>
-          <button onClick={() => void logout()} className="text-gray-500 hover:text-gray-300 text-xs">
+          <button onClick={() => void logout()} className="text-gray-500 hover:text-gray-300 text-xs flex-shrink-0">
             switch
           </button>
         </div>
@@ -193,7 +193,7 @@ export function PayGate() {
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
             <span className="text-green-300">{teaser}</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white leading-tight">
+          <h1 className="hero-headline font-bold text-white break-words">
             See who's climbing the Origins ladder — the second it happens.
           </h1>
           <p className="mt-4 text-gray-300 max-w-2xl mx-auto">
@@ -221,13 +221,13 @@ export function PayGate() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-5 rounded-lg transition-colors"
                   >
-                    Abrir en Ronin para iniciar sesión →
+                    Open in Ronin to sign in →
                   </a>
                   <span className="block mt-2 text-xs text-gray-400">
-                    ¿En el celular? Tocá el botón para abrir esta página dentro de tu app Ronin e iniciar sesión.
-                    ¿No tenés la app?{' '}
+                    On your phone? Tap to open this page inside your Ronin app and sign in.
+                    Don't have it?{' '}
                     <a href="https://wallet.roninchain.com/" target="_blank" rel="noopener noreferrer" className="underline">
-                      instalá Ronin Wallet
+                      Install Ronin Wallet
                     </a>
                     .
                   </span>
@@ -285,11 +285,11 @@ export function PayGate() {
             The Top 2,000 split <span className="text-white font-semibold">80,000+ bAXS</span> this season.
             Every rank you hold right now is prize money. Your 2-week window covers the sprint to season end.
           </p>
-          <div className="mt-5 inline-block text-left bg-gray-900/60 border border-gray-700 rounded-lg p-4 text-sm">
-            <div className="flex justify-between gap-8"><span className="text-gray-400">Access</span><span className="text-white font-medium">2 full weeks</span></div>
-            <div className="flex justify-between gap-8"><span className="text-gray-400">Price</span><span className="text-white font-medium">2 USDC (~$0.14/day)</span></div>
-            <div className="flex justify-between gap-8"><span className="text-gray-400">Network</span><span className="text-white font-medium">Ronin · USDC</span></div>
-            <div className="flex justify-between gap-8"><span className="text-gray-400">Renewal</span><span className="text-white font-medium">None — no auto-renew</span></div>
+          <div className="mt-5 inline-block w-full max-w-md sm:max-w-sm text-left bg-gray-900/60 border border-gray-700 rounded-lg p-4 text-sm">
+            <div className="flex justify-between gap-4 sm:gap-8"><span className="text-gray-400 flex-shrink-0">Access</span><span className="text-white font-medium text-right">2 full weeks</span></div>
+            <div className="flex justify-between gap-4 sm:gap-8"><span className="text-gray-400 flex-shrink-0">Price</span><span className="text-white font-medium text-right">2 USDC (~$0.14/day)</span></div>
+            <div className="flex justify-between gap-4 sm:gap-8"><span className="text-gray-400 flex-shrink-0">Network</span><span className="text-white font-medium text-right">Ronin · USDC</span></div>
+            <div className="flex justify-between gap-4 sm:gap-8"><span className="text-gray-400 flex-shrink-0">Renewal</span><span className="text-white font-medium text-right">None — no auto-renew</span></div>
           </div>
           <p className="mt-4 text-gray-400 text-sm">
             Less than one in-game energy refill, for the two weeks that decide your season rank. Pay on Ronin —

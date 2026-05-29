@@ -33,10 +33,10 @@ export function Header({ updatedAt, rps, etaSeconds, playerCount, sortBy, onSort
               </h1>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               {/* Top 100 Toggle */}
               <div className="flex items-center">
-                <div className="flex items-center h-7 w-24">
+                <div className="hidden sm:flex items-center h-7 w-24">
                   {showTop100Only && (
                     <div className="flex items-center gap-1 px-2 py-1 bg-blue-600/20 border border-blue-500/30 rounded-md mr-3">
                       <span className="text-blue-400 text-xs font-semibold tracking-wide">TOP 100</span>
@@ -68,7 +68,7 @@ export function Header({ updatedAt, rps, etaSeconds, playerCount, sortBy, onSort
 
               {/* Top Range Toggle */}
               <div className="flex items-center">
-                <div className="flex items-center h-7 w-20">
+                <div className="hidden sm:flex items-center h-7 w-20">
                   {topRange === 'top300' && (
                     <div className="flex items-center gap-1 px-2 py-1 bg-purple-600/20 border border-purple-500/30 rounded-md mr-3">
                       <span className="text-purple-400 text-xs font-semibold tracking-wide">TOP 300</span>
@@ -100,7 +100,7 @@ export function Header({ updatedAt, rps, etaSeconds, playerCount, sortBy, onSort
 
               {/* Sniper Mode Toggle */}
               <div className="flex items-center">
-                <div className="flex items-center h-7 w-36">
+                <div className="hidden sm:flex items-center h-7 w-36">
                   {sortBy === 'sniper' && (
                     <div className="flex items-center gap-1 px-2 py-1 bg-red-600/20 border border-red-500/30 rounded-md mr-3">
                       <span className="text-red-400 text-xs font-semibold tracking-wide">🎯 SNIPER MODE</span>
@@ -148,7 +148,7 @@ export function Header({ updatedAt, rps, etaSeconds, playerCount, sortBy, onSort
                 Updated: <span className="font-mono text-xs">{formatCurrentTime(new Date(updatedAt).getTime())}</span>
               </div>
             </div>
-            <div className="border-l border-gray-700 pl-3 lg:pl-4">
+            <div className="sm:border-l border-gray-700 sm:pl-3 lg:pl-4">
               <UserMenu />
             </div>
           </div>

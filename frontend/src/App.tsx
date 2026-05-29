@@ -118,7 +118,7 @@ function App() {
         onTopRangeChange={handleTopRangeChange}
       />
       
-      <main className="max-w-7xl mx-auto p-4 pt-20">
+      <main className="max-w-7xl mx-auto p-4 lg:pt-20">
         <RivalRadar />
         {sortedPlayers.length === 0 ? (
           <div className="text-center py-12">
@@ -131,7 +131,7 @@ function App() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 auto-rows-fr overflow-visible">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 auto-rows-fr overflow-visible">
             {sortedPlayers.map((player) => (
               <PlayerCard key={player.userId} player={player} />
             ))}
