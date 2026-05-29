@@ -2,8 +2,12 @@ import { SiweMessage } from 'siwe';
 import { RONIN_CHAIN_ID, signMessage } from './wallet';
 import { getNonce, verifySiwe, TokenManager, type VerifyResponse } from './api';
 
+// ASCII only: the EIP-4361 (SIWE) statement grammar rejects non-ASCII characters
+// (e.g. an em-dash), which makes siwe's SiweMessage parser throw — that was the
+// "Cannot read properties of undefined (reading 'from')" sign-in crash. Keep
+// this line plain ASCII.
 const SIWE_STATEMENT =
-  'Sign in to access the live Axie ladder tracker. This is a free signature — it does not move any funds.';
+  'Sign in to access the live Axie ladder tracker. This is a free signature - it does not move any funds.';
 
 // Full EIP-4361 flow: fetch a session-bound nonce, build the message with
 // siwe.prepareMessage() (byte-identical to what the backend SiweMessage parser
