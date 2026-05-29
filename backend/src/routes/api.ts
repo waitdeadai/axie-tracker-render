@@ -3,8 +3,13 @@ import { state } from '../core/state';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { requireAccess } from '../access/middleware';
 
 const router = Router();
+
+// Free live radar is the funnel (win the first comparison vs axie.top's 1 USDC);
+// flip GATE_RADAR=true to put even the basic radar behind the paywall.
+const radarGate = process.env.GATE_RADAR === 'true' ? [requireAccess] : [];
 
 function getDataDir(): string {
   return process.env.DATA_DIR || path.join(process.cwd(), 'data');
@@ -94,14 +99,14 @@ router.get('/leaderboard', (_req, res) => {
   res.json(players);
 });
 
-// GET /api/active-players — public
-router.get('/active-players', (_req, res) => {
+// GET /api/active-players — free radar funnel (gate with GATE_RADAR=true)
+router.get('/active-players', ...radarGate, (_req, res) => {
   const players = state.getSnapshot();
   res.json({ updatedAt: new Date().toISOString(), players });
 });
 
-// GET /api/predictions/:userId — public
-router.get('/predictions/:userId', async (req, res) => {
+// GET /api/predictions/:userId — PAID (predicted sessions = premium)
+router.get('/predictions/:userId', requireAccess, async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await runPredictor([userId]);
@@ -117,8 +122,8 @@ router.get('/predictions/:userId', async (req, res) => {
   }
 });
 
-// GET /api/sessions/:userId — public
-router.get('/sessions/:userId', async (req, res) => {
+// GET /api/sessions/:userId — PAID (session-pattern summary = premium)
+router.get('/sessions/:userId', requireAccess, async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await runPredictor([userId, 'summary']);
