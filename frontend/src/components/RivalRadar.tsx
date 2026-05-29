@@ -4,18 +4,32 @@ import { useWatchlist } from '../hooks/useWatchlist';
 // driven by the 1-second VStar radar (backend core/state). Hidden until the wallet
 // has active access.
 export function RivalRadar() {
-  const { rivals, hasAccess, toggle } = useWatchlist({ poll: true });
+  const { rivals, hasAccess, toggle, alertsEnabled, enableAlerts } = useWatchlist({ poll: true });
   if (!hasAccess) return null;
 
   const onlineCount = rivals.filter((r) => r.online).length;
 
   return (
     <section className="mb-6 rounded-lg border border-cyan-700 bg-gray-800 p-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-white">
           Rival Radar <span className="text-cyan-400">({onlineCount} grinding now)</span>
         </h2>
-        <span className="text-xs text-gray-400">{rivals.length} pinned</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => enableAlerts()}
+            disabled={alertsEnabled}
+            className={`text-xs rounded px-2 py-1 border ${
+              alertsEnabled
+                ? 'border-green-600 text-green-400 cursor-default'
+                : 'border-cyan-600 text-cyan-300 hover:bg-cyan-900/30'
+            }`}
+            title="Get a browser notification when a pinned rival queues up"
+          >
+            {alertsEnabled ? 'Alerts on' : 'Enable alerts'}
+          </button>
+          <span className="text-xs text-gray-400">{rivals.length} pinned</span>
+        </div>
       </div>
 
       {rivals.length === 0 ? (
