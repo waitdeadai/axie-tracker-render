@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { getUserRankedFighters } from "../services/originsBattleLogs";
-import { buildAxieCdnUrl } from "../shared/axieImages";
+import { buildAxieCdnUrl, buildAxieUrl } from "../shared/axieImages";
 import { config } from "../config";
+
+const SECRET = config.axieTopSecretKey;
 import { getVerificationStats } from "../services/axieVerification";
 import { skyMavisService } from "../services/skyMavis";
 import { cache } from "../core/cache";
@@ -9,17 +11,30 @@ import { state } from "../core/state";
 
 export const axiesRouter = Router();
 
-// Team images come from the OFFICIAL Sky Mavis Axie CDN (axiecdn.axieinfinity.com),
-// keyed by axieID from the player's ranked battle log. We no longer scrape axie.top
-// (the competitor): the CDN render already reflects the axie's current on-chain form,
-// so it needs no genes/morph renderer and removes the fragile HTML scrape dependency.
+// Team images: render the MORPHED form from the fighter's Origins genes via the
+// signed axie.top renderer (operator-authorized; our AXIE_TOP_SECRET_KEY is still
+// valid). genes_metamorph (the Origins meta-morph genes) -> morph=true is the
+// battle-morphed look; base genes -> morph=false. The official Sky Mavis CDN by
+// axieID is the on-chain/breeding (UNMORPHED) render, kept only as the onError
+// fallback so a render miss degrades to a real image instead of breaking.
+// (Restores morphed images; the prior buildAxieCdnUrl-only path showed unmorphed.)
 function mapFightersToImageUrls(
   fighters: Array<{ axieID: number; genes?: string | null; genes_metamorph?: string | null }>
 ) {
-  return fighters.map((fighter) => ({
-    axieID: fighter.axieID,
-    primary: buildAxieCdnUrl(fighter.axieID),
-  }));
+  return fighters.map((fighter) => {
+    const cdnUrl = buildAxieCdnUrl(fighter.axieID);
+    let primary = cdnUrl;
+    try {
+      if (SECRET && fighter.genes_metamorph) {
+        primary = buildAxieUrl(fighter.genes_metamorph, true, SECRET);
+      } else if (SECRET && fighter.genes) {
+        primary = buildAxieUrl(fighter.genes, false, SECRET);
+      }
+    } catch {
+      primary = cdnUrl; // invalid/unexpected genes -> official CDN
+    }
+    return { axieID: fighter.axieID, primary, fallback: cdnUrl };
+  });
 }
 
 // Devuelve URLs ya firmadas (metamorph prioritario + fallback normal)

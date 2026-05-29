@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { API_BASE } from "../lib/api.config";
 
 const TTL = 15 * 60 * 1000;
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const K = (u:string)=>`axie.images.${CACHE_VERSION}.${u}`;
 
 function getCache(u:string){
