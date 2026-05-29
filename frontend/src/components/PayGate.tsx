@@ -156,7 +156,7 @@ export function PayGate() {
   };
 
   const ctaLabel = !authed
-    ? 'Unlock full live access — 2 USDC / 2 weeks'
+    ? 'Sign in with Ronin →'
     : payBusy
       ? PHASE_LABEL[phase]
       : 'Pay 2 USDC · 2 weeks';
