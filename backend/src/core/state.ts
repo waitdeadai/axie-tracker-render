@@ -1,6 +1,13 @@
 import { LeaderboardEntry, ActivePlayer } from './types';
 import { config } from '../config';
 
+// Gated debug logging: these per-cycle/per-player lines fired every scheduler
+// tick and flooded the docker json-log (event-loop/IO pressure). Off unless
+// AXIE_DEBUG_LOGS=1.
+const dlog = (...args: unknown[]): void => {
+  if (process.env.AXIE_DEBUG_LOGS === '1') globalThis.console.log(...args);
+};
+
 class State {
   private activePlayers: Map<string, ActivePlayer>;
   private leaderboard: LeaderboardEntry[];
@@ -15,10 +22,10 @@ class State {
     if (existing) {
       // Si el jugador ya existe, verificar si esto es una actualización de tiempo
       if (player.battleEndedAt > existing.battleEndedAt) {
-        console.log(`⏱️ Updating last battle time for ${player.name} (#${player.topRank}): ${new Date(existing.battleEndedAt).toISOString()} -> ${new Date(player.battleEndedAt).toISOString()}`);
+        dlog(`⏱️ Updating last battle time for ${player.name} (#${player.topRank}): ${new Date(existing.battleEndedAt).toISOString()} -> ${new Date(player.battleEndedAt).toISOString()}`);
       }
     } else {
-      console.log(`✨ New active player: ${player.name} (#${player.topRank})`);
+      dlog(`✨ New active player: ${player.name} (#${player.topRank})`);
     }
     this.activePlayers.set(player.userId, player);
   }
@@ -41,14 +48,14 @@ class State {
       const timeSinceLastBattle = now - player.battleEndedAt;
       if (timeSinceLastBattle > activeWindow) {
         const minutes = Math.floor(timeSinceLastBattle / 60000);
-        console.log(`🗑️ Removing inactive player: ${player.name} (#${player.topRank}) - No activity for ${minutes} minutes`);
+        dlog(`🗑️ Removing inactive player: ${player.name} (#${player.topRank}) - No activity for ${minutes} minutes`);
         this.activePlayers.delete(userId);
         inactiveCount++;
       }
     }
 
     if (inactiveCount > 0) {
-      console.log(`🧹 Cleaned up ${inactiveCount} inactive players`);
+      dlog(`🧹 Cleaned up ${inactiveCount} inactive players`);
     }
 
     // Obtener jugadores activos
@@ -59,7 +66,7 @@ class State {
     // Log de jugadores activos con rank > 200
     const highRankPlayers = activePlayers.filter(p => p.topRank > 200);
     if (highRankPlayers.length > 0) {
-      console.log('⚠️ Players with rank > 200:', highRankPlayers.map(p => ({
+      dlog('⚠️ Players with rank > 200:', highRankPlayers.map(p => ({
         name: p.name,
         rank: p.topRank,
         lastBattle: new Date(p.battleEndedAt).toISOString()
@@ -69,13 +76,13 @@ class State {
     // Log resumen de jugadores activos
     const recentlyActive = activePlayers.filter(p => now - p.battleEndedAt <= 60000); // último minuto
     if (recentlyActive.length > 0) {
-      console.log(`👥 Currently active: ${activePlayers.length} players (${recentlyActive.length} in last minute)`);
+      dlog(`👥 Currently active: ${activePlayers.length} players (${recentlyActive.length} in last minute)`);
     }
 
     // Debug: Log de rango de topRank de jugadores activos
     if (activePlayers.length > 0) {
       const topRankRange = activePlayers.map(p => p.topRank).sort((a, b) => a - b);
-      console.log(`📊 Backend: Enviando ${activePlayers.length} jugadores activos, rango topRank: ${topRankRange[0]} - ${topRankRange[topRankRange.length - 1]}`);
+      dlog(`📊 Backend: Enviando ${activePlayers.length} jugadores activos, rango topRank: ${topRankRange[0]} - ${topRankRange[topRankRange.length - 1]}`);
     }
 
     return activePlayers;
@@ -95,14 +102,14 @@ class State {
       const timeSinceLastBattle = now - player.battleEndedAt;
       if (timeSinceLastBattle > activeWindow) {
         const minutes = Math.floor(timeSinceLastBattle / 60000);
-        console.log(`🗑️ Removing inactive player: ${player.name} (#${player.topRank}) - No activity for ${minutes} minutes`);
+        dlog(`🗑️ Removing inactive player: ${player.name} (#${player.topRank}) - No activity for ${minutes} minutes`);
         this.activePlayers.delete(userId);
         inactiveCount++;
       }
     }
 
     if (inactiveCount > 0) {
-      console.log(`🧹 Cleaned up ${inactiveCount} inactive players`);
+      dlog(`🧹 Cleaned up ${inactiveCount} inactive players`);
     }
   }
 

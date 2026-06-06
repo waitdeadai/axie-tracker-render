@@ -1,6 +1,12 @@
 import Bottleneck from 'bottleneck';
 import { config } from '../env';
 
+// Gated debug logging: these per-fetch lines fired ~constantly and flooded the
+// docker json-log (event-loop/IO pressure). Off unless AXIE_DEBUG_LOGS=1.
+const dlog = (...args: unknown[]): void => {
+  if (process.env.AXIE_DEBUG_LOGS === '1') globalThis.console.log(...args);
+};
+
 interface FetchOptions {
   url: string;
   init?: RequestInit;
@@ -112,20 +118,20 @@ class RateLimiter {
   async scheduleFetch({ url, init = {}, keyIndexOverride }: FetchOptions): Promise<Response> {
     const keyIndex = keyIndexOverride ?? this.getNextKeyIndex();
     
-    console.log('🔍 Rate limiter: Starting scheduleFetch with key index:', keyIndex);
+    dlog('🔍 Rate limiter: Starting scheduleFetch with key index:', keyIndex);
     
     // Registrar métricas
     this.requestCounts[keyIndex]++;
     this.requestTimes.push(Date.now());
 
     // Simplificar rate limiting - solo usar key limiter por ahora
-    console.log('🔍 Rate limiter: Scheduling key limiter directly...');
+    dlog('🔍 Rate limiter: Scheduling key limiter directly...');
     const response = await this.keyLimiters[keyIndex].schedule(() => {
-      console.log('🔍 Rate limiter: Key limiter passed, making actual fetch...');
+      dlog('🔍 Rate limiter: Key limiter passed, making actual fetch...');
       return this.fetchWithRetry(url, init, keyIndex);
     });
 
-    console.log('🔍 Rate limiter: Fetch completed successfully');
+    dlog('🔍 Rate limiter: Fetch completed successfully');
     return response;
   }
 
